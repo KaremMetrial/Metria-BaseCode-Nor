@@ -5,9 +5,13 @@ umask 027
 root=${1:?Usage: deploy.sh /absolute/deploy/root RELEASE_ID [deploy|rollback]}
 release_id=${2:?Missing release ID}
 mode=${3:-deploy}
-[[ "$root" =~ ^/[A-Za-z0-9/_-]+$ && "$root" != / ]] || exit 2
+environment=${4:-production}
+[[ "$root" =~ ^/[A-Za-z0-9_-]+(/[A-Za-z0-9_-]+)*$ && "$root" != / ]] || exit 2
 [[ "$release_id" =~ ^[a-f0-9]{40}-[0-9]+-[0-9]+$ ]] || exit 2
 [[ "$mode" == deploy || "$mode" == rollback ]] || exit 2
+[[ "$environment" == staging || "$environment" == production ]] || exit 2
+readiness_options=()
+if [[ "$environment" == staging ]]; then readiness_options+=(--sandbox-payments); fi
 [[ -f "$root/shared/deploy.conf" && -f "$root/shared/.env" && -f "$root/shared/socket.env" ]] || { echo 'Missing shared server configuration' >&2; exit 2; }
 # This is an administrator-owned shell configuration, never supplied by CI.
 # shellcheck source=/dev/null
@@ -41,6 +45,10 @@ else
     [[ -f "$release/artisan" ]] || { echo 'Rollback release does not exist' >&2; exit 1; }
 fi
 mkdir -p "$root/shared/storage/app/public" "$root/shared/storage/app/private" "$root/shared/storage/framework/cache/data" "$root/shared/storage/framework/sessions" "$root/shared/storage/framework/views" "$root/shared/storage/logs" "$root/shared/socket-tmp" "$release/bootstrap/cache"
+# Apache needs traversal to public assets; shared configuration stays account-only.
+chmod 711 "$root" "$root/releases" "$root/shared" "$root/shared/storage" "$root/shared/storage/app"
+chmod 755 "$release" "$root/shared/storage/app/public"
+chmod 600 "$root/shared/.env" "$root/shared/socket.env" "$root/shared/deploy.conf"
 ln -sfn "$root/shared/.env" "$release/.env"
 ln -sfn "$root/shared/socket.env" "$release/docker/socketio/.env"
 ln -sfn "$root/shared/socket-tmp" "$release/docker/socketio/tmp"
@@ -52,7 +60,7 @@ artisan() { "$PHP_BIN" "$release/artisan" "$@" --no-interaction; }
 artisan config:cache
 artisan route:cache
 artisan event:cache
-artisan app:readiness --configuration-only
+artisan app:readiness --configuration-only "${readiness_options[@]}"
 # Cron entries must use these same locks. Wait for active jobs before migration.
 exec 8>"$root/queue.lock"
 flock -w 180 8
@@ -65,12 +73,13 @@ if [[ "$mode" == deploy ]]; then
     [[ -f "$root/shared/mysql-backup.cnf" ]] || { echo 'Missing database backup credentials' >&2; exit 1; }
     mkdir -p "$root/backups"
     backup="$root/backups/$release_id.sql.gz"
-    (umask 077; "$MYSQLDUMP_BIN" --defaults-extra-file="$root/shared/mysql-backup.cnf" --single-transaction --no-tablespaces --routines --triggers --set-gtid-purged=OFF "$DB_DATABASE" | gzip -c > "$backup.tmp")
+    chmod 600 "$root/shared/mysql-backup.cnf"
+    (umask 077; "$MYSQLDUMP_BIN" --defaults-extra-file="$root/shared/mysql-backup.cnf" --single-transaction --no-tablespaces --triggers --set-gtid-purged=OFF "$DB_DATABASE" | gzip -c > "$backup.tmp")
     gzip -t "$backup.tmp"
     mv "$backup.tmp" "$backup"
     artisan migrate --force
 fi
-artisan app:readiness
+artisan app:readiness "${readiness_options[@]}"
 if [[ -n "$previous" && "$previous" != "$release" ]]; then
     ln -sfn "$previous" "$root/previous.next"
     mv -Tf "$root/previous.next" "$root/previous"

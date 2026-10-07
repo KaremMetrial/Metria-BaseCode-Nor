@@ -62,7 +62,7 @@ jobs:
           php-version: '8.5'
           extensions: mbstring, intl, pdo_mysql, pdo_sqlite, bcmath
           coverage: none
-      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with:
           node-version: '22'
       - run: composer install --no-interaction --prefer-dist
@@ -87,12 +87,13 @@ jobs:
       - run: node --test docker/socketio/*.test.cjs docker/deploy/*.test.cjs
         env:
           TEST_REDIS_PORT: 6379
+          REDIS_PASSWORD: ''
       - run: docker compose config --quiet
       - name: Validate deployment shell scripts
         run: |
-          bash -n docker/deploy/*.sh
+          for script in docker/deploy/*.sh; do bash -n "$script"; done
           shellcheck docker/deploy/*.sh
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
         if: always()
         with:
           name: test-results
@@ -154,14 +155,18 @@ jobs:
           php-version: '8.5'
           extensions: mbstring, intl, pdo_mysql, bcmath
           coverage: none
-      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with:
           node-version: '22'
       - run: composer install --no-dev --no-scripts --no-interaction --prefer-dist
       - run: npm ci --ignore-scripts
       - run: npm run build
       - run: bash docker/deploy/package.sh
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+      - name: Verify the exact cPanel release artifact
+        run: node --test docker/deploy/artifact.test.cjs
+        env:
+          TEST_RELEASE_ARCHIVE: dist/release.tar.gz
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
         with:
           name: cpanel-release-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
           path: dist/release.tar.gz*
@@ -184,7 +189,7 @@ jobs:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           persist-credentials: false
-      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+      - uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5
         with:
           name: cpanel-release-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
           path: dist
@@ -192,6 +197,7 @@ jobs:
         run: bash docker/deploy/remote.sh deploy
         env:
           RELEASE_ID: ${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          DEPLOY_ENVIRONMENT: ${{ inputs.target == 'production' && 'production' || 'staging' }}
           DEPLOY_HOST: ${{ vars.DEPLOY_HOST }}
           DEPLOY_PORT: ${{ vars.DEPLOY_PORT }}
           DEPLOY_USER: ${{ vars.DEPLOY_USER }}

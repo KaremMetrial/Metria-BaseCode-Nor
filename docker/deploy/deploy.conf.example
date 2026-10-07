@@ -1,0 +1,6 @@
+# Copy to /home/CPANEL_USER/metrial/shared/deploy.conf and use actual host paths.
+PHP_BIN=/opt/cpanel/ea-php85/root/usr/bin/php
+MYSQLDUMP_BIN=/usr/bin/mysqldump
+DB_DATABASE=CPANEL_USER_metrial
+APP_HEALTH_URL=https://api.example.com/up
+SOCKET_HEALTH_URL=https://socket.example.com/health

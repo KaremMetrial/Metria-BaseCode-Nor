@@ -60,3 +60,26 @@ test('two relay nodes deliver once each and survive loss of one node', {skip:!pr
   assert.deepEqual(counts,[1,2]);
  } finally {sockets.forEach(s=>s.close());if(redis.isOpen)await redis.quit();processes.forEach(p=>{if(p.exitCode===null)p.kill('SIGTERM');});await Promise.all(exited);}
 });
+
+test('cPanel app.js boots from a shared dotenv file and honors the host PORT', {skip:!process.env.TEST_REDIS_PORT,timeout:15000}, async t => {
+ const fs=require('node:fs');
+ const os=require('node:os');
+ const directory=fs.mkdtempSync(path.join(os.tmpdir(),'socket-cpanel-'));
+ t.after(()=>fs.rmSync(directory,{recursive:true,force:true}));
+ const envFile=path.join(directory,'socket.env');
+ fs.writeFileSync(envFile,`SOCKET_TOKEN_SECRET=${secret}\nREDIS_HOST=127.0.0.1\nREDIS_PORT=${process.env.TEST_REDIS_PORT}\nREDIS_PREFIX=cpanel_test_\nSOCKET_IO_PORT=1\n`);
+ const hostPort=port+4;
+ const server=spawn(process.execPath,[path.join(__dirname,'app.js')],{cwd:os.tmpdir(),env:{PATH:process.env.PATH,DOTENV_CONFIG_PATH:envFile,PORT:String(hostPort)},stdio:'pipe'});
+ const exited=new Promise(resolve=>server.once('exit',resolve));
+ let diagnostics='';server.stderr.on('data',buffer=>diagnostics+=buffer);
+ try {
+  let ready=false;
+  for(let i=0;i<50;i++) {try{if((await fetch(`http://127.0.0.1:${hostPort}/health`)).ok){ready=true;break;}}catch{}await new Promise(resolve=>setTimeout(resolve,100));}
+  assert.ok(ready,diagnostics);
+  const socket=await new Promise((resolve,reject)=>{
+   const client=io(`http://127.0.0.1:${hostPort}`,{transports:['websocket'],reconnection:false,auth:{token:token('81')},timeout:3000});
+   client.once('connect',()=>resolve(client));client.once('connect_error',error=>{client.close();reject(error);});
+  });
+  socket.close();
+ } finally {server.kill('SIGTERM');await exited;}
+});

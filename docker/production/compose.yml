@@ -61,9 +61,9 @@ services:
     healthcheck:
       test: [CMD, node, -e, "fetch('http://127.0.0.1:6001/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
       interval: 10s
-      timeout: 3s
-      start_period: 10s
-      retries: 6
+      timeout: 5s
+      start_period: 30s
+      retries: 12
   db:
     image: mysql:8.0
     # Required for the immutable-ledger triggers with a non-root migration user.

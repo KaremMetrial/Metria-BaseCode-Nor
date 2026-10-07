@@ -13,7 +13,11 @@ export SOCKET_IMAGE=${SOCKET_IMAGE:-metrial-ci-socket:local}
 compose() { docker compose --env-file "$work/runtime.env" --env-file "$work/images.env" -f "$repo/docker/production/compose.yml" -f "$work/ports.yml" "$@"; }
 cleanup() {
     status=$?
-    if (( status != 0 )); then compose logs --tail=80 app web socketio >&2 || true; fi
+    if (( status != 0 )); then
+        compose logs --tail=80 app web socketio >&2 || true
+        socket_id=$(compose ps -q socketio)
+        if [[ -n "$socket_id" ]]; then docker inspect --format '{{json .State.Health}}' "$socket_id" >&2 || true; fi
+    fi
     compose down --volumes --remove-orphans >/dev/null 2>&1 || true
     rm -rf "$work"
     exit "$status"

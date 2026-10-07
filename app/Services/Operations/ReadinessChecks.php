@@ -12,7 +12,7 @@ use Illuminate\Support\Facades\Redis;
 final class ReadinessChecks
 {
     /** @return array<string, bool> No secrets or provider response bodies are returned. */
-    public function run(bool $connections = true): array
+    public function run(bool $connections = true, bool $sandboxPayments = false): array
     {
         $database = (string) config('database.default');
         $payment = config('payments.providers.'.config('payments.default'), []);
@@ -30,7 +30,7 @@ final class ReadinessChecks
             'redis_queue' => config('queue.default') === 'redis',
             'redis_cache' => config('cache.default') === 'redis',
             'queue_retry_window' => (int) config('queue.connections.redis.retry_after') > 60,
-            'payments_configured' => is_array($payment) && ! empty($payment['secret']) && ! empty($payment['webhook_secret']) && ($payment['livemode'] ?? false) === true,
+            'payments_configured' => is_array($payment) && ! empty($payment['secret']) && ! empty($payment['webhook_secret']) && ($payment['livemode'] ?? null) === ! $sandboxPayments,
             'sms_configured' => is_array($sms) && ! empty($sms['account_sid']) && ! empty($sms['token']) && ! empty($sms['from']),
             'configuration_cached' => app()->configurationIsCached(),
             'routes_cached' => app()->routesAreCached(),

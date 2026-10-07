@@ -30,6 +30,7 @@ jobs:
         run: bash docker/deploy/remote.sh rollback
         env:
           RELEASE_ID: ${{ inputs.release_id }}
+          DEPLOY_ENVIRONMENT: ${{ inputs.target }}
           DEPLOY_HOST: ${{ vars.DEPLOY_HOST }}
           DEPLOY_PORT: ${{ vars.DEPLOY_PORT }}
           DEPLOY_USER: ${{ vars.DEPLOY_USER }}

@@ -1,0 +1,6 @@
+# Copy to shared/mysql-backup.cnf; chmod 600; keep outside the document root.
+[client]
+host=127.0.0.1
+port=3306
+user=CPANEL_USER_backup
+password=REPLACE_ON_SERVER
