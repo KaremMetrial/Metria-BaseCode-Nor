@@ -20,5 +20,6 @@ public/hot
 public/storage
 database/*.sqlite*
 tests
+dist
 AUDIT_*
 .phpunit*

@@ -27,3 +27,4 @@ Homestead.yaml
 Thumbs.db
 
 /docker/socketio/node_modules
+/dist
