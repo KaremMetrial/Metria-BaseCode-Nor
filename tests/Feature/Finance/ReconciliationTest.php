@@ -3,7 +3,6 @@
 namespace Tests\Feature\Finance;
 
 use App\Actions\Payments\CreatePayment;
-use App\Actions\Payments\ProcessWebhook;
 use App\Actions\Payments\ReconcilePayment;
 use App\Actions\Payments\RefundPayment;
 use App\Enums\PaymentStatus;
@@ -30,12 +29,13 @@ class ReconciliationTest extends TestCase
         try {
             app(CreatePayment::class)->execute(User::factory()->create(), 1000, 'EGP', 'stripe', 'payment');
         } catch (DomainException $exception) {
-            if (!$ambiguous) {
+            if (! $ambiguous) {
                 throw $exception;
             }
         }
         $payment = Payment::query()->sole();
         $payment->forceFill(['created_at' => now()->subDays(2)])->save();
+
         return $payment;
     }
 
@@ -142,5 +142,28 @@ class ReconciliationTest extends TestCase
         Http::preventStrayRequests();
         $this->artisan('payments:reconcile', ['--limit' => 10000])->assertExitCode(2);
         Http::assertNothingSent();
+    }
+
+    public function test_successful_refund_reconciliation_keeps_the_original_reservation_debit(): void
+    {
+        $payment = $this->payment();
+        Http::fake(['https://api.stripe.com/v1/payment_intents/pi_reconcile' => Http::response($this->snapshot($payment))]);
+        app(ReconcilePayment::class)->execute($payment);
+        $this->seed(RbacSeeder::class);
+        $admin = User::factory()->admin()->create();
+        $admin->assignRole('finance-admin');
+        Http::fake(['https://api.stripe.com/v1/refunds' => Http::response(['id' => 're_pending', 'status' => 'pending'])]);
+        $refund = app(RefundPayment::class)->execute($admin, $payment->fresh(), 400, 'refund');
+        Http::fake(['https://api.stripe.com/v1/refunds/re_pending' => Http::response(['id' => 're_pending', 'payment_intent' => 'pi_reconcile', 'amount' => 400, 'currency' => 'egp', 'status' => 'succeeded', 'livemode' => false, 'metadata' => ['refund_uuid' => $refund->uuid]])]);
+
+        $this->artisan('payments:reconcile')->assertSuccessful();
+        $this->artisan('payments:reconcile')->assertSuccessful();
+
+        $this->assertSame('succeeded', $refund->fresh()->status);
+        $this->assertSame(PaymentStatus::PARTIALLY_REFUNDED, $payment->fresh()->status);
+        $this->assertSame(400, $payment->fresh()->refunded_amount);
+        $this->assertSame(600, Wallet::findOrFail($payment->wallet_id)->balance);
+        $this->assertDatabaseCount('wallet_transactions', 2);
+        Http::assertSentCount(1);
     }
 }

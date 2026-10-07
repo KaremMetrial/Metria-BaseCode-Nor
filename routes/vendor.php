@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Auth\LogoutController;
 use App\Http\Controllers\Auth\OtpController;
+use App\Http\Controllers\Shared\DeviceTokenController;
 use App\Http\Controllers\Shared\NotificationController;
 use App\Http\Controllers\Shared\PaymentController;
 use App\Http\Controllers\Shared\PhoneChangeController;
@@ -17,6 +18,8 @@ Route::prefix('vendor')->as('vendor.')->group(function (): void {
         Route::post('auth/logout', LogoutController::class)->name('auth.logout');
         Route::get('profile', [ProfileController::class, 'show'])->name('profile.show');
         Route::middleware('active')->group(function (): void {
+            Route::post('devices', [DeviceTokenController::class, 'store'])->middleware('throttle:login')->name('devices.store');
+            Route::delete('devices/{device}', [DeviceTokenController::class, 'destroy'])->whereNumber('device')->name('devices.destroy');
             Route::get('wallet', [WalletController::class, 'index'])->name('wallet.index');
             Route::get('wallet/{wallet}/transactions', [WalletController::class, 'history'])->whereNumber('wallet')->name('wallet.history');
             Route::get('payments', [PaymentController::class, 'index'])->name('payments.index');

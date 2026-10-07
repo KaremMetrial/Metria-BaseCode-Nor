@@ -1,0 +1,70 @@
+name: Application quality
+on: [push, pull_request]
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: ci-only-password
+          MYSQL_DATABASE: metrial_test
+        ports: [3306:3306]
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -pci-only-password"
+          --health-interval=5s --health-timeout=5s --health-retries=20
+      redis:
+        image: redis:7-alpine
+        ports: [6379:6379]
+    env:
+      APP_ENV: testing
+      APP_DEBUG: false
+      LOG_CHANNEL: stderr
+      DB_CONNECTION: mysql
+      DB_HOST: 127.0.0.1
+      DB_PORT: 3306
+      DB_DATABASE: metrial_test
+      DB_USERNAME: root
+      DB_PASSWORD: ci-only-password
+      DB_URL: ''
+      REDIS_HOST: 127.0.0.1
+      REDIS_PORT: 6379
+      REDIS_PREFIX: metrial_ci_
+      REDIS_PASSWORD: 'null'
+      RUN_REDIS_INTEGRATION: 1
+      CACHE_STORE: array
+      QUEUE_CONNECTION: sync
+      SESSION_DRIVER: array
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.5'
+          extensions: mbstring, intl, pdo_mysql, pdo_sqlite, bcmath
+          coverage: none
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: composer install --no-interaction --prefer-dist
+      - run: cp .env.example .env
+      - run: php artisan key:generate --no-interaction
+      - run: composer validate --strict
+      - run: composer audit
+      - run: vendor/bin/phpstan analyse --no-progress
+      - run: php artisan test --compact
+      - run: php artisan migrate:fresh --seed --force --no-interaction
+      - run: php artisan db:seed --force --no-interaction
+      - run: npm ci
+      - run: npm --prefix docker/socketio ci
+      - run: npm audit
+      - run: npm --prefix docker/socketio audit
+      - run: npm run build
+      - run: node --test docker/socketio/auth.test.cjs docker/socketio/integration.test.cjs
+        env:
+          TEST_REDIS_PORT: 6379
+      - run: docker compose config --quiet

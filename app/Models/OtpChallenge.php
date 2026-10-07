@@ -2,8 +2,14 @@
 
 namespace App\Models;
 
+use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Model;
 
+/**
+ * @property CarbonImmutable $sent_at
+ * @property CarbonImmutable $expires_at
+ * @property CarbonImmutable|null $consumed_at
+ */
 class OtpChallenge extends Model
 {
     protected $hidden = ['code_hash', 'scope'];

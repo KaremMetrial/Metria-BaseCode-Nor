@@ -35,3 +35,28 @@ test('live socket credentials, room isolation, Redis relay and expiry', {skip:!p
   await new Promise((resolve,reject)=>{expiring.once('disconnect',resolve);setTimeout(()=>reject(new Error('token did not expire')),4000).unref();});
  } finally {sockets.forEach(s=>s.close());if(redis.isOpen)await redis.quit();server.kill('SIGTERM');await new Promise(resolve=>server.once('exit',resolve));}
 });
+
+test('two relay nodes deliver once each and survive loss of one node', {skip:!process.env.TEST_REDIS_PORT,timeout:20000}, async()=>{
+ const ports=[port+1,port+2];
+ const processes=ports.map(p=>spawn(process.execPath,[path.join(__dirname,'socket.io.config.cjs')],{env:{...process.env,REDIS_HOST:'127.0.0.1',REDIS_PORT:process.env.TEST_REDIS_PORT,REDIS_PREFIX:'metrial_multinode_',SOCKET_IO_PORT:String(p),SOCKET_TOKEN_SECRET:secret},stdio:'pipe'}));
+ const exited=processes.map(p=>new Promise(resolve=>p.once('exit',resolve)));
+ const redis=createClient({socket:{host:'127.0.0.1',port:Number(process.env.TEST_REDIS_PORT)}});redis.on('error',()=>{});
+ const sockets=[];
+ try {
+  for(const p of ports){
+   let ready=false;
+   for(let i=0;i<50;i++){try{if((await fetch(`http://127.0.0.1:${p}/health`)).ok){ready=true;break;}}catch{}await new Promise(r=>setTimeout(r,100));}
+   assert.ok(ready,`node ${p} did not start`);
+   sockets.push(await new Promise((resolve,reject)=>{const socket=io(`http://127.0.0.1:${p}`,{transports:['websocket'],reconnection:false,auth:{token:token('71')},timeout:3000});socket.once('connect',()=>resolve(socket));socket.once('connect_error',error=>{socket.close();reject(error);});}));
+  }
+  await redis.connect();
+  const counts=[0,0];sockets.forEach((s,i)=>s.on('notification.created',()=>counts[i]++));
+  await redis.publish('metrial_multinode_private-user.71',JSON.stringify({event:'notification.created',data:{id:'shared'}}));
+  for(let i=0;i<30&&counts.some(c=>c===0);i++)await new Promise(r=>setTimeout(r,50));
+  await new Promise(r=>setTimeout(r,100));assert.deepEqual(counts,[1,1]);
+  processes[0].kill('SIGTERM');await exited[0];
+  await redis.publish('metrial_multinode_private-user.71',JSON.stringify({event:'notification.created',data:{id:'survivor'}}));
+  for(let i=0;i<30&&counts[1]<2;i++)await new Promise(r=>setTimeout(r,50));
+  assert.deepEqual(counts,[1,2]);
+ } finally {sockets.forEach(s=>s.close());if(redis.isOpen)await redis.quit();processes.forEach(p=>{if(p.exitCode===null)p.kill('SIGTERM');});await Promise.all(exited);}
+});

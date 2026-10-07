@@ -2,8 +2,14 @@
 
 namespace App\Models;
 
+use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Model;
 
+/**
+ * @property array<string, string|int|float|bool|null> $parameters
+ * @property CarbonImmutable|null $read_at
+ * @property CarbonImmutable|null $published_at
+ */
 class UserNotification extends Model
 {
     public $incrementing = false;

@@ -7,6 +7,7 @@ use App\Http\Controllers\Admin\UserManagementController;
 use App\Http\Controllers\Admin\WalletAdjustmentController;
 use App\Http\Controllers\Auth\AdminLoginController;
 use App\Http\Controllers\Auth\LogoutController;
+use App\Http\Controllers\Shared\DeviceTokenController;
 use App\Http\Controllers\Shared\NotificationController;
 use App\Http\Controllers\Shared\PhoneChangeController;
 use App\Http\Controllers\Shared\ProfileController;
@@ -19,6 +20,8 @@ Route::prefix('admin')->as('admin.')->group(function (): void {
         Route::post('auth/logout', LogoutController::class)->name('auth.logout');
         Route::get('profile', [ProfileController::class, 'show'])->name('profile.show');
         Route::middleware('active')->group(function (): void {
+            Route::post('devices', [DeviceTokenController::class, 'store'])->middleware('throttle:login')->name('devices.store');
+            Route::delete('devices/{device}', [DeviceTokenController::class, 'destroy'])->whereNumber('device')->name('devices.destroy');
             Route::post('wallets/{wallet}/adjustments', WalletAdjustmentController::class)->whereNumber('wallet')->middleware('can:wallets.adjust')->name('wallet.adjust');
             Route::post('payments/{payment}/refunds', RefundController::class)->whereNumber('payment')->middleware('can:payments.refund')->name('payments.refund');
             Route::get('notifications', [NotificationController::class, 'index'])->name('notifications.index');

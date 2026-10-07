@@ -61,7 +61,7 @@ async function main() {
   server.listen(Number(process.env.SOCKET_IO_PORT || 6001));
 }
 for (const signal of ['SIGTERM', 'SIGINT']) process.on(signal, async () => {
-  io.disconnectSockets(true);
+  io.local.disconnectSockets(true);
   io.close();
   await Promise.allSettled(clients.map(client => client.quit()));
   process.exit(0);

@@ -18,7 +18,7 @@ class CitySeeder extends Seeder
 
     public function run(): void
     {
-        /** @var array<string, list<array{en: string, ar: string, lat?: float, lng?: float}>> $data */
+        /** @var array<string, list<array{code: string, en: string, ar: string, lat?: float, lng?: float}>> $data */
         $data = require database_path('data/cities.php');
 
         /** @var list<string> $locales */
@@ -56,7 +56,7 @@ class CitySeeder extends Seeder
     }
 
     /**
-     * @param  array{en: string, ar: string, lat?: float, lng?: float}  $city
+     * @param  array{code: string, en: string, ar: string, lat?: float, lng?: float}  $city
      * @param  list<string>  $locales
      * @return array<string, array{name: string}>
      */

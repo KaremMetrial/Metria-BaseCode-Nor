@@ -6,6 +6,7 @@ use Astrotomic\Translatable\Contracts\Translatable as TranslatableContract;
 use Astrotomic\Translatable\Translatable;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -13,7 +14,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 /**
  * @property-read string $name
  * @property-read string|null $description
- * @property-read \Illuminate\Database\Eloquent\Collection<int, CategoryTranslation> $translations
+ * @property-read Collection<int, CategoryTranslation> $translations
  */
 #[Fillable(['parent_id', 'is_active', 'sort_order'])]
 class Category extends Model implements TranslatableContract
@@ -44,7 +45,7 @@ class Category extends Model implements TranslatableContract
         return $query->where('is_active', true)->where(function (Builder $q) use ($remaining): void {
             $q->whereNull('parent_id');
             if ($remaining > 1) {
-                $q->orWhereHas('parent', fn (Builder $p) => $p->visible($remaining - 1));
+                $q->orWhereHas('parent', fn (Builder $p) => $this->scopeVisible($p, $remaining - 1));
             }
         });
     }

@@ -5,6 +5,9 @@ namespace App\Models;
 use App\Enums\WalletTransactionType;
 use Illuminate\Database\Eloquent\Model;
 
+/**
+ * @property WalletTransactionType $direction
+ */
 class WalletTransaction extends Model
 {
     public const UPDATED_AT = null;
