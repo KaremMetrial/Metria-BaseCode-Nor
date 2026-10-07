@@ -24,6 +24,13 @@ final class ProcessWebhook
     public function execute(string $provider, string $body, array $headers): void
     {
         $event = $this->gateways->get($provider)->verifyWebhook($body, $headers);
+        $this->applyVerifiedEvent($provider, $event, $body);
+    }
+
+    /** Only verified gateway results may cross this internal boundary. */
+    public function applyVerifiedEvent(string $provider, array $event, ?string $body = null): void
+    {
+        $body ??= json_encode($event, JSON_THROW_ON_ERROR);
         DB::transaction(function () use ($provider, $body, $event): void {
             $inserted = PaymentWebhookEvent::query()->insertOrIgnore(['provider' => $provider, 'provider_event_id' => $event['id'], 'payload_hash' => hash('sha256', $body), 'created_at' => now()]);
             if (! $inserted) {
