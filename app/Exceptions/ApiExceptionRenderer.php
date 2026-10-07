@@ -7,6 +7,8 @@ use App\Support\ApiResponse;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Illuminate\Database\QueryException;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\Exceptions\ThrottleRequestsException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -34,10 +36,10 @@ final class ApiExceptionRenderer
             return null;
         }
 
-        if ($e instanceof \Illuminate\Database\UniqueConstraintViolationException) {
+        if ($e instanceof UniqueConstraintViolationException) {
             return ApiResponse::error(ErrorCode::RESOURCE_CONFLICT);
         }
-        if ($e instanceof \Illuminate\Database\QueryException && in_array((int)($e->errorInfo[1] ?? 0), [1451,1452], true)) {
+        if ($e instanceof QueryException && in_array((int) ($e->errorInfo[1] ?? 0), [1451, 1452], true)) {
             return ApiResponse::error(ErrorCode::RESOURCE_IN_USE);
         }
 

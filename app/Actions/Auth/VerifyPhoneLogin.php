@@ -19,7 +19,7 @@ use Illuminate\Database\UniqueConstraintViolationException;
 
 final class VerifyPhoneLogin
 {
-    public function __construct(private readonly AuthenticationPhone $phones, private readonly OtpService $otp, private readonly AuditLoggerInterface $audit) {}
+    public function __construct(private readonly AuthenticationPhone $phones, private readonly OtpService $otp, private readonly AuditLoggerInterface $audit, private readonly WalletService $wallets) {}
 
     public function execute(array $data, UserType $type): array
     {
@@ -35,7 +35,7 @@ final class VerifyPhoneLogin
                     $user->forceFill(['name' => '', 'phone' => $phone->e164, 'phone_country_id' => $challenge->country_id, 'type' => $type, 'status' => $type === UserType::VENDOR ? UserStatus::PENDING : UserStatus::ACTIVE, 'locale' => app()->getLocale()]);
                 }
                 $user->forceFill(['phone_verified_at' => now(), 'last_login_at' => now()])->save();
-                app(WalletService::class)->forUser($user, (string) config('payments.default_currency'));
+                $this->wallets->forUser($user, (string) config('payments.default_currency'));
                 $token = $user->createToken($type->value, ['*'], now()->addMinutes((int) config('otp.token_minutes')))->plainTextToken;
                 $this->audit->record(new AuditEntry(AuditAction::USER_LOGIN, $user, actor: $user));
 

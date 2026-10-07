@@ -81,6 +81,6 @@ class WalletSafetyTest extends TestCase
         $wallet = $service->forUser(User::factory()->create(), 'EGP');
         $wallet->forceFill(['is_locked' => true])->save();
         $this->expectException(DomainException::class);
-        $service->change($wallet,WalletTransactionType::CREDIT,100,'locked','test');
+        $service->change($wallet, WalletTransactionType::CREDIT, 100, 'locked', 'test');
     }
 }

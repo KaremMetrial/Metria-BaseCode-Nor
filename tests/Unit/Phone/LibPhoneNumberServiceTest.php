@@ -69,6 +69,7 @@ class LibPhoneNumberServiceTest extends TestCase
 
         $variants = [
             '01012345678',
+            '201012345678',
             '0101 234 5678',
             '0101-234-5678',
             '+201012345678',

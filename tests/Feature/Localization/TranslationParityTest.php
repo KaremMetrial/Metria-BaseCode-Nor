@@ -24,12 +24,16 @@ class TranslationParityTest extends TestCase
     private function catalog(string $locale): array
     {
         $keys = [];
-        $iterator = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator(lang_path($locale), \FilesystemIterator::SKIP_DOTS));
-        foreach ($iterator as $file) {
-            if ($file->getExtension() === 'php') {
-                $prefix = substr($file->getPathname(), strlen(lang_path($locale)) + 1, -4);
-                foreach (Arr::dot(require $file->getPathname()) as $k => $v) {
-                    $keys[$prefix.'.'.$k] = $v;
+        $roots = [lang_path($locale), ...glob(lang_path('vendor/*/'.$locale))];
+        foreach ($roots as $root) {
+            $namespace = $root === lang_path($locale) ? '' : basename(dirname($root)).'::';
+            $iterator = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($root, \FilesystemIterator::SKIP_DOTS));
+            foreach ($iterator as $file) {
+                if ($file->getExtension() === 'php') {
+                    $prefix = substr($file->getPathname(), strlen($root) + 1, -4);
+                    foreach (Arr::dot(require $file->getPathname()) as $k => $v) {
+                        $keys[$namespace.$prefix.'.'.$k] = $v;
+                    }
                 }
             }
         }
@@ -42,7 +46,7 @@ class TranslationParityTest extends TestCase
     {
         foreach (['en', 'ar'] as $locale) {
             $this->postJson('/api/v1/admin/auth/login', [], ['Accept-Language' => $locale])->assertUnprocessable()->assertJsonPath('message', trans('errors.VALIDATION_FAILED', [], $locale))->assertJsonPath('errors.email.0', trans('validation.required', ['attribute' => trans('validation.attributes.email', [], $locale)], $locale));
-            $this->getJson('/api/v1/no-such-route', ['Accept-Language' => $locale])->assertNotFound()->assertJsonPath('message',trans('errors.NOT_FOUND',[],$locale));
+            $this->getJson('/api/v1/no-such-route', ['Accept-Language' => $locale])->assertNotFound()->assertJsonPath('message', trans('errors.NOT_FOUND', [], $locale));
         }
     }
 }

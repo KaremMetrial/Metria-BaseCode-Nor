@@ -20,11 +20,15 @@ final class ChangeUserStatus
     {
         return DB::transaction(function () use ($actor, $user, $status): User {
             $user = User::query()->whereKey($user->id)->lockForUpdate()->firstOrFail();
-            if ($actor->id === $user->id || $user->type === UserType::ADMIN) {
+            if ($actor->type !== UserType::ADMIN || ! $actor->status->isFullyActive() || $actor->id === $user->id || $user->type === UserType::ADMIN) {
                 throw new DomainException(ErrorCode::FORBIDDEN);
             }
             $before = $user->status;
-            $permission = $user->type === UserType::VENDOR && $before === UserStatus::PENDING ? ($status === UserStatus::ACTIVE ? 'vendors.approve' : 'vendors.reject') : 'users.block';
+            $permission = match (true) {
+                $user->type === UserType::VENDOR && $status === UserStatus::ACTIVE => 'vendors.approve',
+                $user->type === UserType::VENDOR && $before === UserStatus::PENDING => 'vendors.reject',
+                default => 'users.block',
+            };
             if (! $actor->can($permission)) {
                 throw new DomainException(ErrorCode::FORBIDDEN);
             }

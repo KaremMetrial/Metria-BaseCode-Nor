@@ -18,7 +18,7 @@ use Illuminate\Database\UniqueConstraintViolationException;
 
 final class ChangePhone
 {
-    public function __construct(private readonly AuthenticationPhone $phones, private readonly OtpService $otp, private readonly AuditLoggerInterface $audit) {}
+    public function __construct(private readonly AuthenticationPhone $phones, private readonly OtpService $otp, private readonly AuditLoggerInterface $audit, private readonly NotificationOutbox $notifications) {}
 
     public function request(User $user, array $data): string
     {
@@ -46,7 +46,7 @@ final class ChangePhone
                 $locked->forceFill(['phone' => $phone->e164, 'phone_country_id' => $challenge->country_id, 'phone_verified_at' => now()])->save();
                 $locked->tokens()->delete();
                 $this->audit->record(new AuditEntry(AuditAction::USER_PHONE_CHANGED, $locked, ['phone' => $old], ['phone' => $phone->e164], $locked));
-                app(NotificationOutbox::class)->record($locked, 'notifications.phone_changed', [], 'phone:'.$challenge->challenge_id);
+                $this->notifications->record($locked, 'notifications.phone_changed', [], 'phone:'.$challenge->challenge_id);
                 event(new PhoneChanged($locked->id));
 
                 return $locked;

@@ -10,6 +10,7 @@ use App\Models\Payment;
 use App\Models\User;
 use App\Services\Auth\OtpService;
 use App\Services\Wallet\WalletService;
+use Database\Seeders\RbacSeeder;
 use Illuminate\Foundation\Testing\DatabaseMigrations;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -122,17 +123,22 @@ class ConcurrencyTest extends TestCase
         $this->assertDatabaseCount('payment_webhook_events', 1);
     }
 
-    public function test_concurrent_refunds_cannot_exceed_paid_amount(): void {
-        $this->seed(\Database\Seeders\RbacSeeder::class);
-        $actor=User::factory()->admin()->create();$actor->assignRole('finance-admin');
-        $user=User::factory()->create();$wallet=app(WalletService::class)->forUser($user,'EGP');
-        app(WalletService::class)->change($wallet,WalletTransactionType::CREDIT,100,'initial','funding');
-        $payment=new Payment;
-        $payment->forceFill(['uuid'=>(string)\Illuminate\Support\Str::uuid(),'user_id'=>$user->id,'wallet_id'=>$wallet->id,'provider'=>'stripe','provider_reference'=>'pi_refunds','amount'=>100,'currency'=>'EGP','status'=>'paid','refunded_amount'=>0,'idempotency_key'=>'initial','request_hash'=>str_repeat('a',64)])->save();
-        $base=['operation'=>'refund','actor'=>$actor->id,'payment'=>$payment->id];
-        $result=$this->race($base+['key'=>'first'],$base+['key'=>'second']);
-        $this->assertSame(1,count(array_filter($result,fn($r)=>$r['success'])));
-        $this->assertSame(80,$payment->fresh()->refunded_amount);$this->assertSame(20,$wallet->fresh()->balance);
-        $this->assertDatabaseCount('payment_refunds',1);$this->assertDatabaseCount('wallet_transactions',2);
+    public function test_concurrent_refunds_cannot_exceed_paid_amount(): void
+    {
+        $this->seed(RbacSeeder::class);
+        $actor = User::factory()->admin()->create();
+        $actor->assignRole('finance-admin');
+        $user = User::factory()->create();
+        $wallet = app(WalletService::class)->forUser($user, 'EGP');
+        app(WalletService::class)->change($wallet, WalletTransactionType::CREDIT, 100, 'initial', 'funding');
+        $payment = new Payment;
+        $payment->forceFill(['uuid' => (string) Str::uuid(), 'user_id' => $user->id, 'wallet_id' => $wallet->id, 'provider' => 'stripe', 'provider_reference' => 'pi_refunds', 'amount' => 100, 'currency' => 'EGP', 'status' => 'paid', 'refunded_amount' => 0, 'idempotency_key' => 'initial', 'request_hash' => str_repeat('a', 64)])->save();
+        $base = ['operation' => 'refund', 'actor' => $actor->id, 'payment' => $payment->id];
+        $result = $this->race($base + ['key' => 'first'], $base + ['key' => 'second']);
+        $this->assertSame(1, count(array_filter($result, fn ($r) => $r['success'])));
+        $this->assertSame(80, $payment->fresh()->refunded_amount);
+        $this->assertSame(20, $wallet->fresh()->balance);
+        $this->assertDatabaseCount('payment_refunds', 1);
+        $this->assertDatabaseCount('wallet_transactions', 2);
     }
 }

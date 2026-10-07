@@ -1,129 +1,58 @@
-# Metrial Basecode
+# Metrial API
 
-A Laravel + Docker starting point with a Socket.IO realtime server backed by
-Redis. Everything needed to run the app — PHP, Nginx, MySQL, Redis, the queue
-worker and the websocket server — is defined in `docker-compose.yml`.
+Laravel 13 / PHP 8.5 monolith with MySQL 8, Redis queues and authenticated Socket.IO. The API has separate `/api/v1/admin`, `/api/v1/client`, and `/api/v1/vendor` surfaces. See `AUDIT_REPORT.txt` and `AUDIT_EVIDENCE.json` for verification and release conditions.
 
-## Stack
+## Local setup
 
-| Layer | Technology |
-| --- | --- |
-| Framework | Laravel 13 (PHP 8.5) |
-| Web server | Nginx (alpine) |
-| PHP runtime | `php:8.5-fpm-alpine`, PHP-FPM + Supervisor |
-| Database | MySQL 8.0 |
-| Cache / sessions / queue / pub-sub | Redis 7 |
-| Realtime | Node 20 + Socket.IO 4 with `@socket.io/redis-adapter` |
+Install Composer and npm dependencies, copy `.env.example` to `.env`, and generate `APP_KEY` with `php artisan key:generate`. Configure a random `SOCKET_TOKEN_SECRET` of at least 32 bytes before starting Socket.IO; Laravel and Socket.IO must share it. `openssl rand -hex 32` generates a suitable value.
 
-## Services
-
-| Service | Container | Host port | Notes |
-| --- | --- | --- | --- |
-| `web` | `metrial_web` | `80`, `443` | Nginx, serves `public/` |
-| `app` | `metrial_app` | – | PHP-FPM only (Supervisor) |
-| `queue` | `metrial_queue` | – | `queue:work redis` |
-| `socketio` | `metrial_socketio` | `6001` | Socket.IO server + relay |
-| `db` | `metrial_db` | `3308` → 3306 | MySQL |
-| `redis` | `metrial_redis` | `6379` | Redis |
-
-## Quick start
-
-```bash
-cp .env.example .env
+```sh
+composer install
+npm ci
+npm --prefix docker/socketio ci
 docker compose build
 docker compose up -d
-docker compose exec app php artisan key:generate
-docker compose exec app php artisan migrate
+docker compose exec app php artisan migrate --seed
 ```
 
-Then open <http://localhost>.
+The example DB credentials and development admin are for local use. Set unique secrets, `APP_ENV=production`, `APP_DEBUG=false`, and TLS before a deployment. The development admin is only seeded in local/development/testing. Do not run `migrate:fresh` against an existing application database.
 
-## Realtime architecture
+Services: `app`, `web`, `db`, `redis`, `queue`, `scheduler`, `socketio`. Host DB/Redis ports bind to loopback. The scheduler republishes pending notification outbox entries; both scheduler and queue worker must run. Redis uses `noeviction` to protect queued work: monitor memory and failed jobs. Docker configuration validation is recorded in the audit; a complete production deployment was not performed.
 
-Laravel never terminates websocket connections. It only *publishes* to Redis,
-and the Socket.IO container relays those messages to connected clients:
+## Authentication and locale
 
-```
-browser ──(HTTP)──> Nginx ──> PHP-FPM ──(publish)──> Redis pub/sub
-                                                            │
-browser <──(websocket, :6001)── Socket.IO container <───────┘
-```
+Admin login: `POST /api/v1/admin/auth/login` with email/password. Client/vendor login: `POST /api/v1/{actor}/auth/otp/request` with `country_id` and `phone`, then `/auth/otp/verify` with those fields, `challenge_id`, and `code`. Numbers are normalized to E.164. Send issued tokens as `Authorization: Bearer ...`. New vendors remain pending approval and may read their profile or log out.
 
-Concretely, for `POST /api/events/test`:
+Locale priority is explicit `locale` query / `X-Locale`, authenticated user preference, `Accept-Language`, then application default. Supported locales are `en` and `ar`. Error codes and identifiers remain stable across languages.
 
-1. `app/Events/MessageSent` broadcasts on channel `room.{room}`. Because it
-   implements `ShouldBroadcast`, Laravel serialises
-   `{event, data, socket}` and publishes it to the Redis channel
-   `REDIS_PREFIX + 'room.' + room` — e.g. `metrial_room.smoke`.
-2. `docker/socketio/socket.io.config.cjs` is subscribed to `REDIS_PREFIX*`. It
-   strips the prefix to recover the channel name and emits the event inside the
-   Socket.IO room of the same name.
+## Multiple payment and SMS providers
 
-> The pub/sub channel name is `database.redis.options.prefix` + the channel
-> name, so **`REDIS_PREFIX` must be identical for the `app`, `queue` and
-> `socketio` services**. It is passed to all three in `docker-compose.yml`.
+Providers default to `disabled`. Configure `SMS_PROVIDER=twilio`, `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, and `TWILIO_FROM` for SMS. Configure `PAYMENT_PROVIDER=stripe`, `STRIPE_SECRET`, `STRIPE_WEBHOOK_SECRET`, and the correct `STRIPE_LIVEMODE` for payments. Use test credentials and `STRIPE_LIVEMODE=false` for Stripe sandbox validation.
 
-### Broadcasting from Laravel
+Registries in `config/payments.php` and `config/sms.php` accept multiple named configurations and drivers implementing their respective interfaces. A payment request may select a configured provider; a payment retains that provider for callbacks/refunds. SMS uses the configured default. Automatic cross-provider financial failover is not implemented because it can duplicate charges. Additional gateway brands require a concrete adapter and contract tests; configuring an arbitrary brand name does not implement its API.
 
-```php
-broadcast(new App\Events\MessageSent($message, $userId, $room));
-```
+Wallet amounts are integer minor units. Payment creation and wallet/refund mutations require the `Idempotency-Key` HTTP header; replay the same key with the same payload after a timeout. Stripe callbacks use `POST /api/v1/webhooks/payments/{provider}` and authenticate the raw request body with the provider signature. Only provider settlement credits a wallet. Refunds reserve the wallet debit before the external call. An ambiguous operation older than 23 hours stops automatic provider retries and requires reconciliation against the provider record. Do not issue a fresh key to bypass this guard.
 
-### Listening from the front-end
+## Realtime
 
-```js
-import { io } from 'socket.io-client';
+Obtain `{data: {token, expires_at}}` from `POST /api/v1/{actor}/realtime/token` using the API bearer token. Connect with Socket.IO websocket transport and `auth: {token}`. The server automatically joins the authenticated user's `private-user.ID` room. Listen for `notification.created`; fetch missed notifications from the authenticated notifications endpoint. Reconnect with a new credential after expiry (120 seconds by default). Blocking/logout revokes HTTP tokens; an already issued realtime credential lasts until its short expiry.
 
-const socket = io('http://localhost:6001');
+The relay accepts only server-published notification events. Keep `REDIS_PREFIX`, Redis connection settings, and `SOCKET_TOKEN_SECRET` consistent across app, worker, and Socket.IO. Notification delivery is at least once: deduplicate by notification ID. Database notifications and realtime delivery are implemented; FCM and general-purpose email notification channels are not implemented.
 
-socket.on('connect', () => socket.emit('join:room', 'room.smoke'));
-socket.on('message:sent', (payload) => console.log(payload));
+## Verification
+
+```sh
+php artisan test --compact
+vendor/bin/pint --dirty --format agent
+composer validate --strict
+composer audit
+npm audit
+npm --prefix docker/socketio audit
+npm run build
+docker compose config --quiet
+node --test docker/socketio/auth.test.cjs
 ```
 
-Server-emitted events: `message:received`, `typing:started`, `typing:stopped`,
-`client:connected`, `client:disconnected`. Client-emitted events: `join:room`,
-`leave:room`, `message:send`, `typing:start`.
+SQLite skips five MySQL multi-process concurrency tests and one opt-in Redis integration test. To exercise those tests, use a disposable MySQL database with the full `DB_*` environment, set `RUN_REDIS_INTEGRATION=1` and isolated `REDIS_*` settings, then run the same Laravel suite. Tests migrate/reset the supplied test database. Set `TEST_REDIS_PORT` to a disposable Redis port to run `node --test docker/socketio/auth.test.cjs docker/socketio/integration.test.cjs`.
 
-Health check: `curl http://localhost:6001/health`.
-
-## Common commands
-
-```bash
-docker compose up -d                     # start everything
-docker compose logs -f app socketio      # tail logs
-docker compose exec app php artisan ...  # artisan
-docker compose exec app composer ...     # composer
-docker compose exec app php artisan migrate
-docker compose exec app php artisan queue:work   # ad-hoc worker
-docker compose exec db mysql -umetrial -pmetrial metrial
-docker compose down                      # stop (volumes are kept)
-```
-
-## Configuration notes
-
-These are the settings most easily got wrong:
-
-- **`DB_PORT` vs `DB_HOST_PORT`.** `DB_PORT=3306` is the port *inside* the
-  Docker network. MySQL is published to the host on `DB_HOST_PORT=3308`.
-- **`SESSION_CONNECTION`.** This is a Redis *connection name* from
-  `config/database.php` (`default` or `cache`), not the session driver. The
-  driver is `SESSION_DRIVER`.
-- **`REDIS_CLIENT=predis`.** The stack uses the `predis` client rather than the
-  `phpredis` extension. `BROADCAST_CONNECTION` and `QUEUE_CONNECTION` are
-  driver names and should stay `redis`.
-- **`REDIS_PREFIX=metrial_`.** Keep in sync with the `socketio` service.
-- **PHP-FPM and file permissions.** FPM runs as the host user's UID/GID
-  (`WWWUSER`/`WWWGROUP`, default `1000`) so the bind-mounted `storage/` and
-  `bootstrap/cache/` directories are writable from both the host and the
-  container. If your host UID differs, set it when building:
-
-  ```bash
-  WWWUSER=$(id -u) WWWGROUP=$(id -g) docker compose build app queue
-  ```
-
-- **Nginx upstream resolution.** `docker/nginx/default.conf` resolves the `app`
-  container through Docker's embedded DNS (`127.0.0.11`) at request time, so
-  recreating the `app` container does not require restarting `web`.
-- **Config bind mounts.** `docker/php/zz-docker.conf` and
-  `docker/nginx/default.conf` are bind-mounted read-only, so the files in this
-  repository are always the ones in effect — no rebuild needed to change them.
+No PHPStan/Larastan configuration or dependency is installed. PHP syntax checks, formatting, runtime tests, and dependency audits are recorded separately; none is presented as static type analysis.

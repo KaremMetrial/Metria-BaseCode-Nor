@@ -39,6 +39,21 @@ class AdminManagementTest extends TestCase
         $this->patchJson('/api/v1/admin/users/'.$admin->id.'/status', ['status' => 'blocked'])->assertForbidden();
     }
 
+    public function test_block_permission_cannot_bypass_vendor_approval_through_an_intermediate_status(): void
+    {
+        $this->seed(RbacSeeder::class);
+        $vendor = User::factory()->vendor()->create(['status' => UserStatus::INACTIVE]);
+        $admin = User::factory()->admin()->create();
+        $admin->givePermissionTo('users.block');
+        Sanctum::actingAs($admin);
+
+        $this->patchJson('/api/v1/admin/users/'.$vendor->id.'/status', ['status' => 'active'])->assertForbidden();
+        $this->assertSame(UserStatus::INACTIVE, $vendor->fresh()->status);
+
+        $admin->givePermissionTo('vendors.approve');
+        $this->patchJson('/api/v1/admin/users/'.$vendor->id.'/status', ['status' => 'active'])->assertOk();
+    }
+
     public function test_only_super_admin_can_assign_roles_and_never_to_clients(): void
     {
         $this->seed(RbacSeeder::class);

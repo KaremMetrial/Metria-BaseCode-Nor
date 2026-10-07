@@ -11,6 +11,7 @@ use App\Models\PaymentRefund;
 use App\Models\User;
 use App\Models\Wallet;
 use App\Services\Payments\StripeGateway;
+use Database\Seeders\RbacSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Testing\TestResponse;
@@ -82,7 +83,7 @@ class PaymentFlowTest extends TestCase
     {
         $p = $this->createPayment();
         $this->webhook($p)->assertOk();
-        $this->seed(\Database\Seeders\RbacSeeder::class);
+        $this->seed(RbacSeeder::class);
         $admin = User::factory()->admin()->create();
         $admin->assignRole('finance-admin');
         Http::fake(['https://api.stripe.com/v1/refunds' => Http::sequence()->push(['id' => 're_one', 'status' => 'succeeded'])->push(['id' => 're_two', 'status' => 'succeeded'])]);
@@ -101,7 +102,7 @@ class PaymentFlowTest extends TestCase
     {
         $p = $this->createPayment();
         $this->webhook($p)->assertOk();
-        $this->seed(\Database\Seeders\RbacSeeder::class);
+        $this->seed(RbacSeeder::class);
         $admin = User::factory()->admin()->create();
         $admin->assignRole('finance-admin');
         $action = app(RefundPayment::class);
@@ -131,5 +132,39 @@ class PaymentFlowTest extends TestCase
     {
         $this->expectException(DomainException::class);
         app(CreatePayment::class)->execute(User::factory()->create(), 100, 'EGP', 'missing', 'key');
+    }
+
+    public function test_multiple_provider_configurations_keep_payments_and_credentials_separate(): void
+    {
+        $this->provider();
+        $secondary = config('payments.providers.stripe');
+        $secondary['secret'] = 'secondary-test-key';
+        config(['payments.providers.secondary' => $secondary]);
+        Http::fake(['https://api.stripe.com/v1/payment_intents' => fn ($r) => Http::response(['id' => 'pi_'.$r['metadata']['payment_uuid'], 'amount' => 100, 'currency' => 'egp', 'client_secret' => 'secret'])]);
+        $user = User::factory()->create();
+        $action = app(CreatePayment::class);
+        $first = $action->execute($user, 100, 'EGP', 'stripe', 'one');
+        $second = $action->execute($user, 100, 'EGP', 'secondary', 'two');
+        $this->assertSame('stripe', $first->provider);
+        $this->assertSame('secondary', $second->provider);
+        Http::assertSent(fn ($r) => $r->hasHeader('Authorization', 'Bearer secondary-test-key'));
+        $this->assertDatabaseCount('payments', 2);
+    }
+
+    public function test_failed_refund_releases_reservation_once(): void
+    {
+        $p = $this->createPayment();
+        $this->webhook($p)->assertOk();
+        $this->seed(RbacSeeder::class);
+        $admin = User::factory()->admin()->create();
+        $admin->assignRole('finance-admin');
+        Http::fake(['https://api.stripe.com/v1/refunds' => Http::response(['id' => 're_failed', 'status' => 'failed'])]);
+        $action = app(RefundPayment::class);
+        $refund = $action->execute($admin, $p->fresh(), 4000, 'failed-refund');
+        $action->execute($admin, $p->fresh(), 4000, 'failed-refund');
+        $this->assertSame('failed', $refund->status);
+        $this->assertSame(10000, Wallet::find($p->wallet_id)->balance);
+        $this->assertSame(0, $p->fresh()->refunded_amount);
+        $this->assertDatabaseCount('wallet_transactions', 3);
     }
 }

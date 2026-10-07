@@ -15,6 +15,8 @@ class Category extends Model implements TranslatableContract
 {
     use Translatable;
 
+    public const MAX_DEPTH = 5;
+
     public array $translatedAttributes = ['name', 'description'];
 
     protected function casts(): array
@@ -32,7 +34,7 @@ class Category extends Model implements TranslatableContract
         return $this->hasMany(self::class, 'parent_id');
     }
 
-    public function scopeVisible(Builder $query, int $remaining = 5): Builder
+    public function scopeVisible(Builder $query, int $remaining = self::MAX_DEPTH): Builder
     {
         return $query->where('is_active', true)->where(function (Builder $q) use ($remaining): void {
             $q->whereNull('parent_id');

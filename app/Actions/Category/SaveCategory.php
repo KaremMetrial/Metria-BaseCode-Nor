@@ -25,8 +25,11 @@ final class SaveCategory
                 $seen = [];
                 $cursor = $node;
                 while ($cursor !== null) {
-                    if (isset($seen[$cursor]) || count($seen) >= 5) {
+                    if (isset($seen[$cursor])) {
                         throw new DomainException(ErrorCode::CATEGORY_CYCLE);
+                    }
+                    if (count($seen) >= Category::MAX_DEPTH) {
+                        throw new DomainException(ErrorCode::CATEGORY_DEPTH_EXCEEDED);
                     }
                     $seen[$cursor] = true;
                     $cursor = $parents[$cursor] ?? null;

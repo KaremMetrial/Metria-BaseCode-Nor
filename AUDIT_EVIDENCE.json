@@ -1,0 +1,1290 @@
+{
+  "date": "2026-10-07",
+  "workspace": "/home/metrial/Desktop/projects/metrial-basecode-normal",
+  "verdict": "READY WITH CONDITIONS",
+  "versions": {
+    "laravel": "13.34.0",
+    "php_sqlite": "8.5.4",
+    "php_mysql": "8.5.0",
+    "phpunit": "12.5.38",
+    "astrotomic": "11.17.1",
+    "libphonenumber": "9.0.40",
+    "spatie_permission": "8.3",
+    "sanctum": "4.3.3"
+  },
+  "tests": {
+    "sqlite": {
+      "tool": "phpunit",
+      "result": "passed",
+      "tests": 222,
+      "passed": 216,
+      "assertions": 2762,
+      "duration_ms": 23623,
+      "skipped": 6
+    },
+    "mysql_with_redis": {
+      "tool": "phpunit",
+      "result": "passed",
+      "tests": 222,
+      "passed": 222,
+      "assertions": 2795,
+      "duration_ms": 51782
+    },
+    "final_expanded_translation_parity": {
+      "tool": "phpunit",
+      "result": "passed",
+      "tests": 2,
+      "passed": 2,
+      "assertions": 728,
+      "duration_ms": 161
+    },
+    "socket": {
+      "tests": 7,
+      "passed": 7,
+      "failed": 0,
+      "real_redis": true
+    }
+  },
+  "translation": {
+    "application_files_per_locale": 11,
+    "application_keys_per_locale": 237,
+    "package_override_files_per_locale": 1,
+    "package_override_keys_per_locale": 2,
+    "total_files_per_locale": 12,
+    "total_keys_per_locale": 239,
+    "missing_en": [],
+    "missing_ar": [],
+    "placeholder_mismatches": 0,
+    "unused_detected": [
+      "otp.verified"
+    ],
+    "unused_detection_limit": "Framework validation, enum/error catalogs and dynamic resource messages are deliberately retained; no exhaustive dynamic reachability claim.",
+    "human_facing_unlocalized_findings": []
+  },
+  "routes": {
+    "total": 81,
+    "api": 74,
+    "duplicate_names": [],
+    "duplicate_method_uri_pairs": []
+  },
+  "php_syntax": {
+    "files": 268,
+    "errors": []
+  },
+  "migrations_and_cache": [
+    {
+      "database": "sqlite",
+      "command": "artisan migrate:fresh --seed --force --no-interaction",
+      "exit_code": 0
+    },
+    {
+      "database": "sqlite",
+      "command": "artisan db:seed --force --no-interaction",
+      "exit_code": 0
+    },
+    {
+      "database": "mysql",
+      "command": "artisan migrate:fresh --seed --force --no-interaction",
+      "exit_code": 0
+    },
+    {
+      "database": "mysql",
+      "command": "artisan db:seed --force --no-interaction",
+      "exit_code": 0
+    },
+    {
+      "database": "sqlite",
+      "command": "artisan optimize --no-interaction",
+      "exit_code": 0
+    }
+  ],
+  "dependency_audits": {
+    "composer": {
+      "advisories": [],
+      "abandoned": []
+    },
+    "npm_root": {
+      "info": 0,
+      "low": 0,
+      "moderate": 0,
+      "high": 0,
+      "critical": 0,
+      "total": 0
+    },
+    "npm_socket": {
+      "info": 0,
+      "low": 0,
+      "moderate": 0,
+      "high": 0,
+      "critical": 0,
+      "total": 0
+    }
+  },
+  "other_checks": {
+    "pint": "passed",
+    "composer_validate_strict": "passed",
+    "vite_build": "passed, optional fontaine warning",
+    "docker_compose_config": "passed",
+    "concurrently_override_smoke": "passed",
+    "phpstan_larastan": "not installed; not run"
+  },
+  "audit_matrix": [
+    {
+      "requirement": "Architecture / SOLID",
+      "initial_status": "PARTIAL",
+      "severity": "HIGH",
+      "final_status": "PASS",
+      "problem": "Existing location layers were reusable, but most business routes were placeholders.",
+      "correction": "Implemented focused Actions, contracts and services; retained a Laravel monolith, no Modules or pass-through repositories.",
+      "files": "app/Actions; app/Contracts; app/Services",
+      "evidence": "STATIC CODE REVIEW + feature tests"
+    },
+    {
+      "requirement": "Routes / API isolation",
+      "initial_status": "PARTIAL",
+      "severity": "HIGH",
+      "final_status": "PASS",
+      "problem": "Actor route comments did not implement the missing workflows; chained parameter constraints overwrote earlier parameters.",
+      "correction": "Added actor-specific workflows; corrected multi-parameter numeric constraints; reviewed all 74 API routes.",
+      "files": "routes; app/Http/Middleware",
+      "evidence": "ActorGuardTest; AccountStatusGuardTest; RbacTest; route inventory"
+    },
+    {
+      "requirement": "Admin login / logout",
+      "initial_status": "NOT IMPLEMENTED",
+      "severity": "HIGH",
+      "final_status": "PASS",
+      "problem": "Email/password authentication and logout were placeholders.",
+      "correction": "Generic credential failure, actor/status checks, hashed passwords, expiring Sanctum tokens, rate limits and audit records.",
+      "files": "app/Actions/Auth; app/Http/Controllers/Auth",
+      "evidence": "AuthenticationFlowTest"
+    },
+    {
+      "requirement": "Client/vendor OTP authentication",
+      "initial_status": "NOT IMPLEMENTED",
+      "severity": "HIGH",
+      "final_status": "PASS",
+      "problem": "No complete OTP issuance, consumption or account creation flow.",
+      "correction": "Hashed six-digit challenge, scope/purpose/user binding, expiry, attempt limits, cooldown, atomic consume, pending vendors.",
+      "files": "app/Services/Auth; app/Actions/Auth",
+      "evidence": "AuthenticationFlowTest; ConcurrencyTest"
+    },
+    {
+      "requirement": "International phone / E.164",
+      "initial_status": "PARTIAL",
+      "severity": "HIGH",
+      "final_status": "PASS",
+      "problem": "Existing libphonenumber layer needed edge-case and workflow integration checks.",
+      "correction": "Active country ISO validation, mobile policy, extension rejection, E.164 uniqueness, country mismatch handling.",
+      "files": "app/Services/Phone; app/Services/Auth/AuthenticationPhone.php",
+      "evidence": "LibPhoneNumberServiceTest; FactoryPhoneTest; AuthenticationFlowTest"
+    },
+    {
+      "requirement": "User types / status / RBAC",
+      "initial_status": "PARTIAL",
+      "severity": "HIGH",
+      "final_status": "PASS",
+      "problem": "Super-admin bypass was not sufficiently actor/status constrained; lifecycle actions absent.",
+      "correction": "Active admin gate; dedicated status and role actions; vendor activation always requires approval; token revocation.",
+      "files": "app/Providers/AppServiceProvider.php; app/Actions/Access",
+      "evidence": "RbacTest; AdminManagementTest; AuditRegressionTest"
+    },
+    {
+      "requirement": "Profile / phone changes",
+      "initial_status": "NOT IMPLEMENTED",
+      "severity": "HIGH",
+      "final_status": "PASS",
+      "problem": "No implemented safe profile or OTP phone-change flow.",
+      "correction": "Whitelisted fields; separate purpose-bound phone challenge; uniqueness under transaction; verified state; token revocation and audit/outbox.",
+      "files": "app/Actions/Profile; app/Http/Requests/Profile",
+      "evidence": "AuthenticationFlowTest"
+    },
+    {
+      "requirement": "Countries / governorates / cities",
+      "initial_status": "PARTIAL",
+      "severity": "HIGH",
+      "final_status": "PASS",
+      "problem": "PATCH normalization could null omitted fields; seed identity depended on translated names; unsafe parent cascades.",
+      "correction": "Partial update correction, translation key whitelist, stable city codes and historical backfill, RESTRICT parent deletes.",
+      "files": "app/Http/Requests/Admin; database/seeders; database/migrations",
+      "evidence": "AdminLocationApiTest; LocationHierarchyRuleTest; SeederIdentityTest"
+    },
+    {
+      "requirement": "Addresses",
+      "initial_status": "NOT IMPLEMENTED",
+      "severity": "LOW",
+      "final_status": "NOT IMPLEMENTED",
+      "problem": "No address model or endpoint exists in this basecode.",
+      "correction": "Reviewed as the request's conditional address area; hierarchy rules are reusable if addresses are later added.",
+      "files": "app/Rules; database/migrations",
+      "evidence": "STATIC CODE REVIEW; no address behavior claimed"
+    },
+    {
+      "requirement": "Astrotomic models / translations",
+      "initial_status": "PARTIAL",
+      "severity": "MEDIUM",
+      "final_status": "PASS",
+      "problem": "Translation arrays needed explicit column whitelisting; factory output did not always preserve supplied data.",
+      "correction": "Retained Astrotomic events; fixed factories and translated writes; unique entity/locale constraints.",
+      "files": "app/Models; app/Actions/Location; database/factories",
+      "evidence": "LocationSeederTest; AdminLocationApiTest; CategoryFlowTest"
+    },
+    {
+      "requirement": "Arabic / English / locale",
+      "initial_status": "PARTIAL",
+      "severity": "MEDIUM",
+      "final_status": "PASS",
+      "problem": "No complete application validation catalogs or recursive placeholder parity; unmatched API errors could miss locale.",
+      "correction": "Full framework validation catalogs; localized domains; locale reset and regional normalization; parity includes package overrides.",
+      "files": "lang; app/Http/Middleware/SetLocale.php",
+      "evidence": "TranslationParityTest; LocaleMiddlewareTest; LocaleConfigurationTest"
+    },
+    {
+      "requirement": "Exceptions / API envelope",
+      "initial_status": "PARTIAL",
+      "severity": "HIGH",
+      "final_status": "PASS",
+      "problem": "Unhandled failures could fall back to inconsistent framework/debug output.",
+      "correction": "Central safe translated fallback; preserved rate-limit headers; normalized uniqueness/FK failures; safe production reporting.",
+      "files": "app/Exceptions; bootstrap/app.php; app/Support/ApiResponse.php",
+      "evidence": "ApiResponseFormatTest; AuditRegressionTest; TranslationParityTest"
+    },
+    {
+      "requirement": "Wallet / ledger / money",
+      "initial_status": "NOT IMPLEMENTED",
+      "severity": "CRITICAL",
+      "final_status": "PASS",
+      "problem": "No actual safe wallet implementation.",
+      "correction": "Integer minor units, bounded amounts, currency checks, row locks, conditional balance update, scoped payload-hash idempotency, immutable ledger.",
+      "files": "app/Services/Wallet; database/migrations/*financial*",
+      "evidence": "WalletSafetyTest; ConcurrencyTest; AuditRegressionTest"
+    },
+    {
+      "requirement": "Payment creation / status",
+      "initial_status": "NOT IMPLEMENTED",
+      "severity": "CRITICAL",
+      "final_status": "PARTIAL",
+      "problem": "No payment persistence or provider workflow.",
+      "correction": "Persist intent before external call, provider registry, ownership, stable provider keys, encrypted client secret, server-settlement-only credit.",
+      "files": "app/Actions/Payments/CreatePayment.php; app/Services/Payments",
+      "evidence": "PaymentFlowTest; StripeGatewayTest; live provider NOT RUNTIME VERIFIED"
+    },
+    {
+      "requirement": "Webhook authentication / replay",
+      "initial_status": "NOT IMPLEMENTED",
+      "severity": "CRITICAL",
+      "final_status": "PARTIAL",
+      "problem": "No verified, idempotent callback handling.",
+      "correction": "Raw-body timestamped HMAC, mode and amount/currency/reference checks, provider-neutral events, DB event uniqueness, one credit.",
+      "files": "app/Actions/Payments/ProcessWebhook.php; app/Services/Payments/StripeGateway.php",
+      "evidence": "PaymentFlowTest; ConcurrencyTest; StripeGatewayTest; external delivery pending"
+    },
+    {
+      "requirement": "Refunds / ambiguous failures",
+      "initial_status": "NOT IMPLEMENTED",
+      "severity": "CRITICAL",
+      "final_status": "PARTIAL",
+      "problem": "No partial/full refund accounting or retry safety.",
+      "correction": "Serialized reservation, wallet debit before provider call, stable retry key, compensating release on failure, callback settlement; aged ambiguity stops retries.",
+      "files": "app/Actions/Payments/RefundPayment.php",
+      "evidence": "PaymentFlowTest; ConcurrencyTest; operational reconciliation still manual"
+    },
+    {
+      "requirement": "Multiple provider support",
+      "initial_status": "NOT IMPLEMENTED",
+      "severity": "HIGH",
+      "final_status": "PASS",
+      "problem": "No extension contracts or configuration registry.",
+      "correction": "Named payment/SMS drivers; multiple payment configurations tested; concrete Stripe/Twilio adapters; disabled defaults.",
+      "files": "config/payments.php; config/sms.php; app/Contracts",
+      "evidence": "PaymentFlowTest multiple-provider regression; StripeGatewayTest"
+    },
+    {
+      "requirement": "Categories / translated search",
+      "initial_status": "NOT IMPLEMENTED",
+      "severity": "MEDIUM",
+      "final_status": "PASS",
+      "problem": "Category/search routes were placeholders.",
+      "correction": "Translated tree CRUD, global tree edit lock, cycle/depth validation, active ancestor visibility, locale-aware search, whitelisted sort, pagination.",
+      "files": "app/Actions/Category; app/Models/Category.php; app/Http/Controllers/*/CategoryController.php",
+      "evidence": "CategoryFlowTest"
+    },
+    {
+      "requirement": "Database notifications / realtime outbox",
+      "initial_status": "NOT IMPLEMENTED",
+      "severity": "MEDIUM",
+      "final_status": "PASS",
+      "problem": "No durable per-recipient notification workflow.",
+      "correction": "Unique event-key outbox written in business transaction, recipient locale captured, owner-only reads, retryable publication job and scheduler recovery.",
+      "files": "app/Services/Notifications; app/Jobs; routes/console.php",
+      "evidence": "NotificationFlowTest; RedisQueueIntegrationTest"
+    },
+    {
+      "requirement": "SMS / email / FCM",
+      "initial_status": "PARTIAL",
+      "severity": "MEDIUM",
+      "final_status": "PARTIAL",
+      "problem": "No delivered domain notification channels.",
+      "correction": "Twilio OTP SMS implemented and HTTP-fake tested. General email/FCM channels are absent; do not advertise their delivery.",
+      "files": "app/Services/Auth/TwilioSms.php; config/mail.php; config/sms.php",
+      "evidence": "StripeGatewayTest; AuthenticationFlowTest; actual SMS delivery pending"
+    },
+    {
+      "requirement": "Redis / queues",
+      "initial_status": "PARTIAL",
+      "severity": "HIGH",
+      "final_status": "PASS",
+      "problem": "Redis eviction could lose queue work; missing outbox worker flow.",
+      "correction": "noeviction, queue after_commit, timeout below retry_after, job retry/backoff, scheduler and durable SQL state.",
+      "files": "docker-compose.yml; config/queue.php; app/Jobs",
+      "evidence": "RedisQueueIntegrationTest (real Redis queue/cache)"
+    },
+    {
+      "requirement": "Socket.IO / room authorization",
+      "initial_status": "FAIL",
+      "severity": "CRITICAL",
+      "final_status": "PASS",
+      "problem": "Unauthenticated arbitrary room joins and client-controlled global events.",
+      "correction": "Short-lived signed credentials, own-room-only joins, expiry disconnect, allowlisted server relay, Redis adapter and local emission to avoid duplicate fan-out.",
+      "files": "docker/socketio/auth.cjs; docker/socketio/socket.io.config.cjs",
+      "evidence": "Seven Node tests including live Redis/Socket.IO isolation and expiry"
+    },
+    {
+      "requirement": "Audit / logging / mass assignment",
+      "initial_status": "PARTIAL",
+      "severity": "HIGH",
+      "final_status": "PASS",
+      "problem": "Sensitive nested values could survive redaction; identity fields mutable through general fill.",
+      "correction": "Recursive redaction, sensitive parameter annotations, guarded phone/type/status, audited privileged mutations, scoped request context.",
+      "files": "app/Services/Audit; app/Models/User.php; app/Providers/AppServiceProvider.php",
+      "evidence": "AuditLoggerTest; AuditRegressionTest; AuthenticationFlowTest"
+    },
+    {
+      "requirement": "Database invariants / indexes / deletion",
+      "initial_status": "PARTIAL",
+      "severity": "HIGH",
+      "final_status": "PASS",
+      "problem": "New domains absent; location cascade semantics unsafe.",
+      "correction": "Unique phone/translations/operation keys, financial checks and ledger triggers, deliberate FKs and indexes; additive corrections.",
+      "files": "database/migrations",
+      "evidence": "MySQL/SQLite fresh migrate and repeated seed; AuditRegressionTest"
+    },
+    {
+      "requirement": "Concurrency / idempotency",
+      "initial_status": "NOT IMPLEMENTED",
+      "severity": "CRITICAL",
+      "final_status": "PASS",
+      "problem": "No proven multi-process safety for money, callback or OTP operations.",
+      "correction": "DB locks, unique keys, conditional writes; provider network calls outside financial transactions; consistent retry identities.",
+      "files": "app/Actions/Payments; app/Services/Wallet; app/Services/Auth",
+      "evidence": "Five real MySQL multi-process tests: debit, same-key mutation, OTP, webhook, competing refunds"
+    },
+    {
+      "requirement": "Docker / production config",
+      "initial_status": "PARTIAL",
+      "severity": "HIGH",
+      "final_status": "PARTIAL",
+      "problem": "Debug forced on, DB/Redis publicly bound, broad PHP execution and absent scheduler.",
+      "correction": "Environment-driven debug (forced off in production app config), loopback data ports, front-controller-only PHP, non-root worker/sidecar, scheduler.",
+      "files": "docker-compose.yml; docker; config/app.php; .env.example",
+      "evidence": "Compose validation + code review; full deployment/TLS/backup NOT RUNTIME VERIFIED"
+    },
+    {
+      "requirement": "Tests / formatting / syntax",
+      "initial_status": "PARTIAL",
+      "severity": "HIGH",
+      "final_status": "PASS",
+      "problem": "Baseline had 4 failures and 20 errors (including root-owned logging and invalid test imports).",
+      "correction": "Portable stderr logging/cache, repaired factories/imports, substantial behavior and concurrency regressions; Pint and syntax checks.",
+      "files": "tests; phpunit.xml",
+      "evidence": "222 MySQL tests passed; 216 SQLite passed with 6 explained skips; 268 PHP syntax checks"
+    },
+    {
+      "requirement": "Static type analysis",
+      "initial_status": "NOT IMPLEMENTED",
+      "severity": "MEDIUM",
+      "final_status": "NOT IMPLEMENTED",
+      "problem": "PHPStan/Larastan is not installed or configured.",
+      "correction": "Reported honestly; runtime tests, lint and formatting are separate checks.",
+      "files": "composer.json",
+      "evidence": "NOT RUN: no configured analyzer"
+    },
+    {
+      "requirement": "Dependency security / build",
+      "initial_status": "FAIL",
+      "severity": "CRITICAL",
+      "final_status": "PASS",
+      "problem": "npm audit found critical shell-quote dependency advisory through concurrently.",
+      "correction": "Pinned compatible safe override, removed unused packages, refreshed lockfiles, smoke-tested concurrently; Composer/sidecar audits clean.",
+      "files": "package.json; package-lock.json; docker/socketio/package*.json",
+      "evidence": "Composer audit: 0; root/sidecar npm audits: 0; npm build passed"
+    },
+    {
+      "requirement": "Performance / caching / N+1",
+      "initial_status": "NEEDS REVIEW",
+      "severity": "MEDIUM",
+      "final_status": "PARTIAL",
+      "problem": "No load or production query baseline.",
+      "correction": "Eager-loaded translations, paginated financial/category APIs, relevant compound indexes, bounded tree depth; optimize succeeded.",
+      "files": "app/Http/Controllers; app/Models; database/migrations",
+      "evidence": "STATIC CODE REVIEW + optimize; production load/large-data query plans pending"
+    },
+    {
+      "requirement": "Dead code / placeholders / documentation",
+      "initial_status": "FAIL",
+      "severity": "MEDIUM",
+      "final_status": "PASS",
+      "problem": "Old unauthenticated realtime demo, duplicate JS config, unused controller/config, misleading README.",
+      "correction": "Removed obsolete surfaces and updated setup/provider/realtime documentation; no unfinished business TODO found.",
+      "files": "README.md; routes/web.php; removed demo files",
+      "evidence": "Source scan + route inventory; one unused OTP translation key disclosed"
+    }
+  ],
+  "scores": [
+    {
+      "category": "Architecture",
+      "score": 9,
+      "rationale": "Focused Laravel monolith and explicit external contracts."
+    },
+    {
+      "category": "Laravel Best Practices",
+      "score": 9,
+      "rationale": "FormRequests, Resources, Actions, queue jobs, bindings and framework migrations."
+    },
+    {
+      "category": "Code Quality",
+      "score": 8.5,
+      "rationale": "Runtime checks are strong; static type analysis and a second independent review remain."
+    },
+    {
+      "category": "SOLID",
+      "score": 9,
+      "rationale": "Provider adapters and focused use cases; no unnecessary repository layer."
+    },
+    {
+      "category": "Database Design",
+      "score": 9,
+      "rationale": "MySQL constraints, deliberate deletion policies and real contention tests."
+    },
+    {
+      "category": "Authentication",
+      "score": 9,
+      "rationale": "Admin and OTP login tested across statuses and actor types."
+    },
+    {
+      "category": "Authorization/RBAC",
+      "score": 9,
+      "rationale": "Actor gates, permissions, ownership, super-admin and vendor approval regressions."
+    },
+    {
+      "category": "International Phone Handling",
+      "score": 9,
+      "rationale": "libphonenumber integration, canonical storage and country/mobile policy tests."
+    },
+    {
+      "category": "OTP Security",
+      "score": 9,
+      "rationale": "Hashing, scope, lifetime, attempt/cooldown limits and atomic consumption tested."
+    },
+    {
+      "category": "Localization",
+      "score": 9,
+      "rationale": "Recursive application and package key/placeholder parity; locale resolution tested."
+    },
+    {
+      "category": "Arabic Coverage",
+      "score": 8.5,
+      "rationale": "Complete key parity; native-speaker editorial review of all prose and future channels remains."
+    },
+    {
+      "category": "English Coverage",
+      "score": 9,
+      "rationale": "All shipped domain messages and validation catalog available."
+    },
+    {
+      "category": "Wallet Safety",
+      "score": 9,
+      "rationale": "Immutable integer ledger, SQL constraints, row locks and real concurrency tests."
+    },
+    {
+      "category": "Payment Safety",
+      "score": 8,
+      "rationale": "Stripe sandbox/live merchant validation and operational reconciliation drill remain."
+    },
+    {
+      "category": "Concurrency",
+      "score": 9,
+      "rationale": "Five independent-process MySQL scenarios passed; no claim of exhaustive race proof."
+    },
+    {
+      "category": "Idempotency",
+      "score": 9,
+      "rationale": "Scoped hashes/unique keys and stable provider keys; aged ambiguous retries fail closed."
+    },
+    {
+      "category": "Security",
+      "score": 8.5,
+      "rationale": "Deployment hardening verification, secret/history review and independent penetration testing remain."
+    },
+    {
+      "category": "Realtime Security",
+      "score": 8.5,
+      "rationale": "Room/signature/expiry tests pass; TLS and multi-node load/failover not exercised; revocation has short expiry window."
+    },
+    {
+      "category": "Testing",
+      "score": 8.5,
+      "rationale": "222 MySQL cases plus seven socket cases; no static analyzer, coverage metric or live provider tests."
+    },
+    {
+      "category": "Performance",
+      "score": 7,
+      "rationale": "No representative load, production-scale query plans or queue/failover benchmark."
+    },
+    {
+      "category": "Production Readiness",
+      "score": 7.5,
+      "rationale": "Provider commissioning, deployment/secret/backup monitoring and reconciliation operations are release conditions."
+    }
+  ],
+  "changed_files": [
+    {
+      "path": ".env.example",
+      "change": "modified"
+    },
+    {
+      "path": ".gitignore",
+      "change": "modified"
+    },
+    {
+      "path": ".mcp.json",
+      "change": "added"
+    },
+    {
+      "path": "AGENTS.md",
+      "change": "modified"
+    },
+    {
+      "path": "CLAUDE.md",
+      "change": "modified"
+    },
+    {
+      "path": "README.md",
+      "change": "modified"
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES.txt",
+      "change": "added"
+    },
+    {
+      "path": "app/Actions/Access/AssignUserRole.php",
+      "change": "added"
+    },
+    {
+      "path": "app/Actions/Access/ChangeUserStatus.php",
+      "change": "added"
+    },
+    {
+      "path": "app/Actions/Auth/LoginAdmin.php",
+      "change": "added"
+    },
+    {
+      "path": "app/Actions/Auth/Logout.php",
+      "change": "added"
+    },
+    {
+      "path": "app/Actions/Auth/VerifyPhoneLogin.php",
+      "change": "added"
+    },
+    {
+      "path": "app/Actions/Category/SaveCategory.php",
+      "change": "added"
+    },
+    {
+      "path": "app/Actions/Location/DeleteCountry.php",
+      "change": "modified"
+    },
+    {
+      "path": "app/Actions/Payments/CreatePayment.php",
+      "change": "added"
+    },
+    {
+      "path": "app/Actions/Payments/ProcessWebhook.php",
+      "change": "added"
+    },
+    {
+      "path": "app/Actions/Payments/RefundPayment.php",
+      "change": "added"
+    },
+    {
+      "path": "app/Actions/Profile/ChangePhone.php",
+      "change": "added"
+    },
+    {
+      "path": "app/Actions/Profile/UpdateProfile.php",
+      "change": "added"
+    },
+    {
+      "path": "app/Actions/Wallet/AdjustWallet.php",
+      "change": "added"
+    },
+    {
+      "path": "app/Contracts/Payments/PaymentGatewayInterface.php",
+      "change": "added"
+    },
+    {
+      "path": "app/Contracts/Sms/SmsProviderInterface.php",
+      "change": "added"
+    },
+    {
+      "path": "app/Enums/AuditAction.php",
+      "change": "modified"
+    },
+    {
+      "path": "app/Enums/ErrorCode.php",
+      "change": "modified"
+    },
+    {
+      "path": "app/Enums/OtpPurpose.php",
+      "change": "added"
+    },
+    {
+      "path": "app/Enums/PaymentStatus.php",
+      "change": "added"
+    },
+    {
+      "path": "app/Enums/WalletTransactionType.php",
+      "change": "added"
+    },
+    {
+      "path": "app/Events/PaymentReceived.php",
+      "change": "added"
+    },
+    {
+      "path": "app/Events/PhoneChanged.php",
+      "change": "added"
+    },
+    {
+      "path": "app/Exceptions/ApiExceptionRenderer.php",
+      "change": "modified"
+    },
+    {
+      "path": "app/Exceptions/AppException.php",
+      "change": "modified"
+    },
+    {
+      "path": "app/Exceptions/DomainException.php",
+      "change": "added"
+    },
+    {
+      "path": "app/Http/Controllers/Admin/CategoryController.php",
+      "change": "added"
+    },
+    {
+      "path": "app/Http/Controllers/Admin/FinanceController.php",
+      "change": "added"
+    },
+    {
+      "path": "app/Http/Controllers/Admin/RefundController.php",
+      "change": "added"
+    },
+    {
+      "path": "app/Http/Controllers/Admin/UserManagementController.php",
+      "change": "added"
+    },
+    {
+      "path": "app/Http/Controllers/Admin/WalletAdjustmentController.php",
+      "change": "added"
+    },
+    {
+      "path": "app/Http/Controllers/Auth/AdminLoginController.php",
+      "change": "added"
+    },
+    {
+      "path": "app/Http/Controllers/Auth/LogoutController.php",
+      "change": "added"
+    },
+    {
+      "path": "app/Http/Controllers/Auth/OtpController.php",
+      "change": "added"
+    },
+    {
+      "path": "app/Http/Controllers/Shared/CategoryController.php",
+      "change": "added"
+    },
+    {
+      "path": "app/Http/Controllers/Shared/NotificationController.php",
+      "change": "added"
+    },
+    {
+      "path": "app/Http/Controllers/Shared/PaymentController.php",
+      "change": "added"
+    },
+    {
+      "path": "app/Http/Controllers/Shared/PhoneChangeController.php",
+      "change": "added"
+    },
+    {
+      "path": "app/Http/Controllers/Shared/ProfileController.php",
+      "change": "added"
+    },
+    {
+      "path": "app/Http/Controllers/Shared/SocketTokenController.php",
+      "change": "added"
+    },
+    {
+      "path": "app/Http/Controllers/Shared/WalletController.php",
+      "change": "added"
+    },
+    {
+      "path": "app/Http/Controllers/WebhookController.php",
+      "change": "added"
+    },
+    {
+      "path": "app/Http/Middleware/SetLocale.php",
+      "change": "modified"
+    },
+    {
+      "path": "app/Http/Requests/Admin/CategoryRequest.php",
+      "change": "added"
+    },
+    {
+      "path": "app/Http/Requests/Admin/StoreCityRequest.php",
+      "change": "modified"
+    },
+    {
+      "path": "app/Http/Requests/Admin/StoreCountryRequest.php",
+      "change": "modified"
+    },
+    {
+      "path": "app/Http/Requests/Admin/StoreGovernorateRequest.php",
+      "change": "modified"
+    },
+    {
+      "path": "app/Http/Requests/Admin/UserRoleRequest.php",
+      "change": "added"
+    },
+    {
+      "path": "app/Http/Requests/Admin/UserStatusRequest.php",
+      "change": "added"
+    },
+    {
+      "path": "app/Http/Requests/Auth/AdminLoginRequest.php",
+      "change": "added"
+    },
+    {
+      "path": "app/Http/Requests/Auth/OtpRequest.php",
+      "change": "added"
+    },
+    {
+      "path": "app/Http/Requests/Auth/VerifyOtpRequest.php",
+      "change": "added"
+    },
+    {
+      "path": "app/Http/Requests/Finance/PaymentRequest.php",
+      "change": "added"
+    },
+    {
+      "path": "app/Http/Requests/Finance/RefundRequest.php",
+      "change": "added"
+    },
+    {
+      "path": "app/Http/Requests/Finance/WalletAdjustmentRequest.php",
+      "change": "added"
+    },
+    {
+      "path": "app/Http/Requests/Profile/UpdateProfileRequest.php",
+      "change": "added"
+    },
+    {
+      "path": "app/Http/Requests/Shared/SearchCategoryRequest.php",
+      "change": "added"
+    },
+    {
+      "path": "app/Http/Requests/Shared/ValidatesTranslations.php",
+      "change": "modified"
+    },
+    {
+      "path": "app/Http/Resources/Shared/CategoryResource.php",
+      "change": "added"
+    },
+    {
+      "path": "app/Http/Resources/Shared/PaymentResource.php",
+      "change": "added"
+    },
+    {
+      "path": "app/Http/Resources/Shared/UserResource.php",
+      "change": "added"
+    },
+    {
+      "path": "app/Http/Resources/Shared/WalletResource.php",
+      "change": "added"
+    },
+    {
+      "path": "app/Http/Resources/Shared/WalletTransactionResource.php",
+      "change": "added"
+    },
+    {
+      "path": "app/Jobs/PublishNotification.php",
+      "change": "added"
+    },
+    {
+      "path": "app/Models/AuditLog.php",
+      "change": "modified"
+    },
+    {
+      "path": "app/Models/Category.php",
+      "change": "added"
+    },
+    {
+      "path": "app/Models/CategoryTranslation.php",
+      "change": "added"
+    },
+    {
+      "path": "app/Models/Governorate.php",
+      "change": "modified"
+    },
+    {
+      "path": "app/Models/OtpChallenge.php",
+      "change": "added"
+    },
+    {
+      "path": "app/Models/Payment.php",
+      "change": "added"
+    },
+    {
+      "path": "app/Models/PaymentRefund.php",
+      "change": "added"
+    },
+    {
+      "path": "app/Models/PaymentWebhookEvent.php",
+      "change": "added"
+    },
+    {
+      "path": "app/Models/User.php",
+      "change": "modified"
+    },
+    {
+      "path": "app/Models/UserNotification.php",
+      "change": "added"
+    },
+    {
+      "path": "app/Models/Wallet.php",
+      "change": "added"
+    },
+    {
+      "path": "app/Models/WalletTransaction.php",
+      "change": "added"
+    },
+    {
+      "path": "app/Providers/AppServiceProvider.php",
+      "change": "modified"
+    },
+    {
+      "path": "app/Services/Audit/AuditLogger.php",
+      "change": "modified"
+    },
+    {
+      "path": "app/Services/Audit/RedactSecrets.php",
+      "change": "added"
+    },
+    {
+      "path": "app/Services/Auth/AuthenticationPhone.php",
+      "change": "added"
+    },
+    {
+      "path": "app/Services/Auth/OtpService.php",
+      "change": "added"
+    },
+    {
+      "path": "app/Services/Auth/SmsManager.php",
+      "change": "added"
+    },
+    {
+      "path": "app/Services/Auth/TwilioSms.php",
+      "change": "added"
+    },
+    {
+      "path": "app/Services/Notifications/NotificationOutbox.php",
+      "change": "added"
+    },
+    {
+      "path": "app/Services/Payments/GatewayManager.php",
+      "change": "added"
+    },
+    {
+      "path": "app/Services/Payments/StripeGateway.php",
+      "change": "added"
+    },
+    {
+      "path": "app/Services/Phone/LibPhoneNumberService.php",
+      "change": "modified"
+    },
+    {
+      "path": "app/Services/Realtime/SocketTokenService.php",
+      "change": "added"
+    },
+    {
+      "path": "app/Services/Wallet/WalletService.php",
+      "change": "added"
+    },
+    {
+      "path": "app/Support/ApiResponse.php",
+      "change": "modified"
+    },
+    {
+      "path": "boost.json",
+      "change": "added"
+    },
+    {
+      "path": "bootstrap/app.php",
+      "change": "modified"
+    },
+    {
+      "path": "composer.json",
+      "change": "modified"
+    },
+    {
+      "path": "composer.lock",
+      "change": "modified"
+    },
+    {
+      "path": "config/app.php",
+      "change": "modified"
+    },
+    {
+      "path": "config/otp.php",
+      "change": "added"
+    },
+    {
+      "path": "config/payments.php",
+      "change": "added"
+    },
+    {
+      "path": "config/queue.php",
+      "change": "modified"
+    },
+    {
+      "path": "config/realtime.php",
+      "change": "added"
+    },
+    {
+      "path": "config/sanctum.php",
+      "change": "modified"
+    },
+    {
+      "path": "config/sms.php",
+      "change": "added"
+    },
+    {
+      "path": "database/data/cities.php",
+      "change": "modified"
+    },
+    {
+      "path": "database/factories/CityFactory.php",
+      "change": "modified"
+    },
+    {
+      "path": "database/factories/CountryFactory.php",
+      "change": "modified"
+    },
+    {
+      "path": "database/factories/GovernorateFactory.php",
+      "change": "modified"
+    },
+    {
+      "path": "database/migrations/2026_10_07_061807_create_otp_challenges_table.php",
+      "change": "added"
+    },
+    {
+      "path": "database/migrations/2026_10_07_061808_create_financial_tables.php",
+      "change": "added"
+    },
+    {
+      "path": "database/migrations/2026_10_07_061809_create_categories_and_notifications_tables.php",
+      "change": "added"
+    },
+    {
+      "path": "database/migrations/2026_10_07_061810_restrict_location_parent_deletion.php",
+      "change": "added"
+    },
+    {
+      "path": "database/migrations/2026_10_07_063319_enforce_financial_invariants.php",
+      "change": "added"
+    },
+    {
+      "path": "database/migrations/2026_10_07_063320_backfill_stable_city_seed_codes.php",
+      "change": "added"
+    },
+    {
+      "path": "database/seeders/CitySeeder.php",
+      "change": "modified"
+    },
+    {
+      "path": "database/seeders/CountrySeeder.php",
+      "change": "modified"
+    },
+    {
+      "path": "database/seeders/DatabaseSeeder.php",
+      "change": "modified"
+    },
+    {
+      "path": "database/seeders/GovernorateSeeder.php",
+      "change": "modified"
+    },
+    {
+      "path": "docker-compose.yml",
+      "change": "modified"
+    },
+    {
+      "path": "docker/nginx/default.conf",
+      "change": "modified"
+    },
+    {
+      "path": "docker/socketio/Dockerfile",
+      "change": "modified"
+    },
+    {
+      "path": "docker/socketio/auth.cjs",
+      "change": "added"
+    },
+    {
+      "path": "docker/socketio/auth.test.cjs",
+      "change": "added"
+    },
+    {
+      "path": "docker/socketio/ecosystem.config.js",
+      "change": "modified"
+    },
+    {
+      "path": "docker/socketio/integration.test.cjs",
+      "change": "added"
+    },
+    {
+      "path": "docker/socketio/package-lock.json",
+      "change": "modified"
+    },
+    {
+      "path": "docker/socketio/package.json",
+      "change": "modified"
+    },
+    {
+      "path": "docker/socketio/socket.io.config.cjs",
+      "change": "modified"
+    },
+    {
+      "path": "lang/ar/auth.php",
+      "change": "added"
+    },
+    {
+      "path": "lang/ar/categories.php",
+      "change": "added"
+    },
+    {
+      "path": "lang/ar/errors.php",
+      "change": "modified"
+    },
+    {
+      "path": "lang/ar/notifications.php",
+      "change": "added"
+    },
+    {
+      "path": "lang/ar/otp.php",
+      "change": "added"
+    },
+    {
+      "path": "lang/ar/payments.php",
+      "change": "added"
+    },
+    {
+      "path": "lang/ar/validation.php",
+      "change": "added"
+    },
+    {
+      "path": "lang/ar/wallet.php",
+      "change": "added"
+    },
+    {
+      "path": "lang/en/auth.php",
+      "change": "added"
+    },
+    {
+      "path": "lang/en/categories.php",
+      "change": "added"
+    },
+    {
+      "path": "lang/en/errors.php",
+      "change": "modified"
+    },
+    {
+      "path": "lang/en/notifications.php",
+      "change": "added"
+    },
+    {
+      "path": "lang/en/otp.php",
+      "change": "added"
+    },
+    {
+      "path": "lang/en/payments.php",
+      "change": "added"
+    },
+    {
+      "path": "lang/en/validation.php",
+      "change": "added"
+    },
+    {
+      "path": "lang/en/wallet.php",
+      "change": "added"
+    },
+    {
+      "path": "package-lock.json",
+      "change": "modified"
+    },
+    {
+      "path": "package.json",
+      "change": "modified"
+    },
+    {
+      "path": "phpunit.xml",
+      "change": "modified"
+    },
+    {
+      "path": "routes/admin.php",
+      "change": "modified"
+    },
+    {
+      "path": "routes/api.php",
+      "change": "modified"
+    },
+    {
+      "path": "routes/channels.php",
+      "change": "modified"
+    },
+    {
+      "path": "routes/client.php",
+      "change": "modified"
+    },
+    {
+      "path": "routes/console.php",
+      "change": "modified"
+    },
+    {
+      "path": "routes/locations.php",
+      "change": "modified"
+    },
+    {
+      "path": "routes/vendor.php",
+      "change": "modified"
+    },
+    {
+      "path": "routes/web.php",
+      "change": "modified"
+    },
+    {
+      "path": "routes/webhooks.php",
+      "change": "modified"
+    },
+    {
+      "path": "tests/Feature/Audit/AuditLoggerTest.php",
+      "change": "modified"
+    },
+    {
+      "path": "tests/Feature/Auth/AuthenticationFlowTest.php",
+      "change": "added"
+    },
+    {
+      "path": "tests/Feature/Categories/CategoryFlowTest.php",
+      "change": "added"
+    },
+    {
+      "path": "tests/Feature/Finance/ConcurrencyTest.php",
+      "change": "added"
+    },
+    {
+      "path": "tests/Feature/Finance/PaymentFlowTest.php",
+      "change": "added"
+    },
+    {
+      "path": "tests/Feature/Finance/WalletSafetyTest.php",
+      "change": "added"
+    },
+    {
+      "path": "tests/Feature/Localization/TranslationParityTest.php",
+      "change": "added"
+    },
+    {
+      "path": "tests/Feature/Locations/LocationHierarchyRuleTest.php",
+      "change": "modified"
+    },
+    {
+      "path": "tests/Feature/Locations/SeederIdentityTest.php",
+      "change": "added"
+    },
+    {
+      "path": "tests/Feature/Notifications/NotificationFlowTest.php",
+      "change": "added"
+    },
+    {
+      "path": "tests/Feature/Notifications/RedisQueueIntegrationTest.php",
+      "change": "added"
+    },
+    {
+      "path": "tests/Feature/Providers/StripeGatewayTest.php",
+      "change": "added"
+    },
+    {
+      "path": "tests/Feature/Security/AdminManagementTest.php",
+      "change": "added"
+    },
+    {
+      "path": "tests/Feature/Security/AuditRegressionTest.php",
+      "change": "added"
+    },
+    {
+      "path": "tests/Fixtures/RecordingSms.php",
+      "change": "added"
+    },
+    {
+      "path": "tests/Fixtures/concurrent-worker.php",
+      "change": "added"
+    },
+    {
+      "path": "tests/Unit/Phone/LibPhoneNumberServiceTest.php",
+      "change": "modified"
+    },
+    {
+      "path": "app/Events/MessageSent.php",
+      "change": "deleted"
+    },
+    {
+      "path": "app/Http/Controllers/RealTimeController.php",
+      "change": "deleted"
+    },
+    {
+      "path": "app/Http/Controllers/UserController.php",
+      "change": "deleted"
+    },
+    {
+      "path": "config/scramble.php",
+      "change": "deleted"
+    },
+    {
+      "path": "docker/socketio/socket.io.config.js",
+      "change": "deleted"
+    },
+    {
+      "path": "resources/views/welcome.blade.php",
+      "change": "deleted"
+    }
+  ],
+  "generated_setup_files": "Laravel Boost also generated .agents/.claude agent skills and MCP configuration; vendor/node_modules/build outputs are excluded from the application change manifest.",
+  "boundaries": [
+    "No live Stripe or Twilio request was made. Provider HTTP was faked in tests.",
+    "FCM and general email notification delivery are not implemented.",
+    "No address domain exists; reviewed as conditional scope.",
+    "Production infrastructure, TLS, backups and disaster recovery were not tested.",
+    "No Git metadata was available, so repository history and committed-secret claims cannot be verified.",
+    "Only isolated audit MySQL/Redis and disposable SQLite databases were migrated/reset.",
+    "Original user .env and application data were not migrated/reset."
+  ]
+}

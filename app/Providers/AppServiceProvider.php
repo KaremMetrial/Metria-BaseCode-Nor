@@ -24,7 +24,7 @@ class AppServiceProvider extends ServiceProvider
     public function register(): void
     {
         // One correlation id per request (or job) process.
-        $this->app->singleton(RequestId::class);
+        $this->app->scoped(RequestId::class);
 
         // libphonenumber's metadata tables are large; build them once per
         // process instead of on every resolution.
@@ -34,7 +34,7 @@ class AppServiceProvider extends ServiceProvider
         );
 
         $this->app->singleton(PhoneNumberServiceInterface::class, LibPhoneNumberService::class);
-        $this->app->singleton(AuditLoggerInterface::class, AuditLogger::class);
+        $this->app->scoped(AuditLoggerInterface::class, AuditLogger::class);
     }
 
     /**

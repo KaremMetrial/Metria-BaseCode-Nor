@@ -1,0 +1,461 @@
+METRIAL APPLICATION AUDIT AND REMEDIATION
+2026-10-07 | Laravel 13.34.0 | PHP 8.5 | MySQL 8 / Redis 7
+
+A. EXECUTIVE SUMMARY
+The initial implementation had working location/RBAC foundations but incomplete authentication, OTP, profile, financial, category and notification workflows. The realtime service allowed unauthenticated arbitrary-room participation. Those surfaces have been implemented or corrected and exercised locally. The project remains a Laravel monolith.
+Verdict: READY WITH CONDITIONS. This is not authorization to launch with disabled providers or development secrets. No known critical/high application defect remains from the inspected and tested paths; provider commissioning and production operational validation remain release gates. FCM/general email and addresses are not represented as implemented.
+Verification labels: VERIFIED BY TEST = executed runtime evidence; VERIFIED BY STATIC CODE REVIEW = source/configuration inspection; NOT RUNTIME VERIFIED = external/deployment boundary. PASS means the specific local requirement passed within that boundary, not blanket production certification.
+Scope: first-party application, migrations/seeders/factories, routes, configuration, translation catalogs, tests, Docker/Nginx/Socket.IO and dependency manifests. Dependency advisories were checked; third-party vendor source was not individually re-audited. No Git metadata was present, so no commit/history claim is made.
+
+B. AUDIT MATRIX (INITIAL FINDING -> FINAL STATUS)
+01. Architecture / SOLID | PARTIAL -> PASS | HIGH
+    Problem/risk: Existing location layers were reusable, but most business routes were placeholders.
+    Correction/current implementation: Implemented focused Actions, contracts and services; retained a Laravel monolith, no Modules or pass-through repositories.
+    Files: app/Actions; app/Contracts; app/Services
+    Evidence: STATIC CODE REVIEW + feature tests
+02. Routes / API isolation | PARTIAL -> PASS | HIGH
+    Problem/risk: Actor route comments did not implement the missing workflows; chained parameter constraints overwrote earlier parameters.
+    Correction/current implementation: Added actor-specific workflows; corrected multi-parameter numeric constraints; reviewed all 74 API routes.
+    Files: routes; app/Http/Middleware
+    Evidence: ActorGuardTest; AccountStatusGuardTest; RbacTest; route inventory
+03. Admin login / logout | NOT IMPLEMENTED -> PASS | HIGH
+    Problem/risk: Email/password authentication and logout were placeholders.
+    Correction/current implementation: Generic credential failure, actor/status checks, hashed passwords, expiring Sanctum tokens, rate limits and audit records.
+    Files: app/Actions/Auth; app/Http/Controllers/Auth
+    Evidence: AuthenticationFlowTest
+04. Client/vendor OTP authentication | NOT IMPLEMENTED -> PASS | HIGH
+    Problem/risk: No complete OTP issuance, consumption or account creation flow.
+    Correction/current implementation: Hashed six-digit challenge, scope/purpose/user binding, expiry, attempt limits, cooldown, atomic consume, pending vendors.
+    Files: app/Services/Auth; app/Actions/Auth
+    Evidence: AuthenticationFlowTest; ConcurrencyTest
+05. International phone / E.164 | PARTIAL -> PASS | HIGH
+    Problem/risk: Existing libphonenumber layer needed edge-case and workflow integration checks.
+    Correction/current implementation: Active country ISO validation, mobile policy, extension rejection, E.164 uniqueness, country mismatch handling.
+    Files: app/Services/Phone; app/Services/Auth/AuthenticationPhone.php
+    Evidence: LibPhoneNumberServiceTest; FactoryPhoneTest; AuthenticationFlowTest
+06. User types / status / RBAC | PARTIAL -> PASS | HIGH
+    Problem/risk: Super-admin bypass was not sufficiently actor/status constrained; lifecycle actions absent.
+    Correction/current implementation: Active admin gate; dedicated status and role actions; vendor activation always requires approval; token revocation.
+    Files: app/Providers/AppServiceProvider.php; app/Actions/Access
+    Evidence: RbacTest; AdminManagementTest; AuditRegressionTest
+07. Profile / phone changes | NOT IMPLEMENTED -> PASS | HIGH
+    Problem/risk: No implemented safe profile or OTP phone-change flow.
+    Correction/current implementation: Whitelisted fields; separate purpose-bound phone challenge; uniqueness under transaction; verified state; token revocation and audit/outbox.
+    Files: app/Actions/Profile; app/Http/Requests/Profile
+    Evidence: AuthenticationFlowTest
+08. Countries / governorates / cities | PARTIAL -> PASS | HIGH
+    Problem/risk: PATCH normalization could null omitted fields; seed identity depended on translated names; unsafe parent cascades.
+    Correction/current implementation: Partial update correction, translation key whitelist, stable city codes and historical backfill, RESTRICT parent deletes.
+    Files: app/Http/Requests/Admin; database/seeders; database/migrations
+    Evidence: AdminLocationApiTest; LocationHierarchyRuleTest; SeederIdentityTest
+09. Addresses | NOT IMPLEMENTED -> NOT IMPLEMENTED | LOW
+    Problem/risk: No address model or endpoint exists in this basecode.
+    Correction/current implementation: Reviewed as the request's conditional address area; hierarchy rules are reusable if addresses are later added.
+    Files: app/Rules; database/migrations
+    Evidence: STATIC CODE REVIEW; no address behavior claimed
+10. Astrotomic models / translations | PARTIAL -> PASS | MEDIUM
+    Problem/risk: Translation arrays needed explicit column whitelisting; factory output did not always preserve supplied data.
+    Correction/current implementation: Retained Astrotomic events; fixed factories and translated writes; unique entity/locale constraints.
+    Files: app/Models; app/Actions/Location; database/factories
+    Evidence: LocationSeederTest; AdminLocationApiTest; CategoryFlowTest
+11. Arabic / English / locale | PARTIAL -> PASS | MEDIUM
+    Problem/risk: No complete application validation catalogs or recursive placeholder parity; unmatched API errors could miss locale.
+    Correction/current implementation: Full framework validation catalogs; localized domains; locale reset and regional normalization; parity includes package overrides.
+    Files: lang; app/Http/Middleware/SetLocale.php
+    Evidence: TranslationParityTest; LocaleMiddlewareTest; LocaleConfigurationTest
+12. Exceptions / API envelope | PARTIAL -> PASS | HIGH
+    Problem/risk: Unhandled failures could fall back to inconsistent framework/debug output.
+    Correction/current implementation: Central safe translated fallback; preserved rate-limit headers; normalized uniqueness/FK failures; safe production reporting.
+    Files: app/Exceptions; bootstrap/app.php; app/Support/ApiResponse.php
+    Evidence: ApiResponseFormatTest; AuditRegressionTest; TranslationParityTest
+13. Wallet / ledger / money | NOT IMPLEMENTED -> PASS | CRITICAL
+    Problem/risk: No actual safe wallet implementation.
+    Correction/current implementation: Integer minor units, bounded amounts, currency checks, row locks, conditional balance update, scoped payload-hash idempotency, immutable ledger.
+    Files: app/Services/Wallet; database/migrations/*financial*
+    Evidence: WalletSafetyTest; ConcurrencyTest; AuditRegressionTest
+14. Payment creation / status | NOT IMPLEMENTED -> PARTIAL | CRITICAL
+    Problem/risk: No payment persistence or provider workflow.
+    Correction/current implementation: Persist intent before external call, provider registry, ownership, stable provider keys, encrypted client secret, server-settlement-only credit.
+    Files: app/Actions/Payments/CreatePayment.php; app/Services/Payments
+    Evidence: PaymentFlowTest; StripeGatewayTest; live provider NOT RUNTIME VERIFIED
+15. Webhook authentication / replay | NOT IMPLEMENTED -> PARTIAL | CRITICAL
+    Problem/risk: No verified, idempotent callback handling.
+    Correction/current implementation: Raw-body timestamped HMAC, mode and amount/currency/reference checks, provider-neutral events, DB event uniqueness, one credit.
+    Files: app/Actions/Payments/ProcessWebhook.php; app/Services/Payments/StripeGateway.php
+    Evidence: PaymentFlowTest; ConcurrencyTest; StripeGatewayTest; external delivery pending
+16. Refunds / ambiguous failures | NOT IMPLEMENTED -> PARTIAL | CRITICAL
+    Problem/risk: No partial/full refund accounting or retry safety.
+    Correction/current implementation: Serialized reservation, wallet debit before provider call, stable retry key, compensating release on failure, callback settlement; aged ambiguity stops retries.
+    Files: app/Actions/Payments/RefundPayment.php
+    Evidence: PaymentFlowTest; ConcurrencyTest; operational reconciliation still manual
+17. Multiple provider support | NOT IMPLEMENTED -> PASS | HIGH
+    Problem/risk: No extension contracts or configuration registry.
+    Correction/current implementation: Named payment/SMS drivers; multiple payment configurations tested; concrete Stripe/Twilio adapters; disabled defaults.
+    Files: config/payments.php; config/sms.php; app/Contracts
+    Evidence: PaymentFlowTest multiple-provider regression; StripeGatewayTest
+18. Categories / translated search | NOT IMPLEMENTED -> PASS | MEDIUM
+    Problem/risk: Category/search routes were placeholders.
+    Correction/current implementation: Translated tree CRUD, global tree edit lock, cycle/depth validation, active ancestor visibility, locale-aware search, whitelisted sort, pagination.
+    Files: app/Actions/Category; app/Models/Category.php; app/Http/Controllers/*/CategoryController.php
+    Evidence: CategoryFlowTest
+19. Database notifications / realtime outbox | NOT IMPLEMENTED -> PASS | MEDIUM
+    Problem/risk: No durable per-recipient notification workflow.
+    Correction/current implementation: Unique event-key outbox written in business transaction, recipient locale captured, owner-only reads, retryable publication job and scheduler recovery.
+    Files: app/Services/Notifications; app/Jobs; routes/console.php
+    Evidence: NotificationFlowTest; RedisQueueIntegrationTest
+20. SMS / email / FCM | PARTIAL -> PARTIAL | MEDIUM
+    Problem/risk: No delivered domain notification channels.
+    Correction/current implementation: Twilio OTP SMS implemented and HTTP-fake tested. General email/FCM channels are absent; do not advertise their delivery.
+    Files: app/Services/Auth/TwilioSms.php; config/mail.php; config/sms.php
+    Evidence: StripeGatewayTest; AuthenticationFlowTest; actual SMS delivery pending
+21. Redis / queues | PARTIAL -> PASS | HIGH
+    Problem/risk: Redis eviction could lose queue work; missing outbox worker flow.
+    Correction/current implementation: noeviction, queue after_commit, timeout below retry_after, job retry/backoff, scheduler and durable SQL state.
+    Files: docker-compose.yml; config/queue.php; app/Jobs
+    Evidence: RedisQueueIntegrationTest (real Redis queue/cache)
+22. Socket.IO / room authorization | FAIL -> PASS | CRITICAL
+    Problem/risk: Unauthenticated arbitrary room joins and client-controlled global events.
+    Correction/current implementation: Short-lived signed credentials, own-room-only joins, expiry disconnect, allowlisted server relay, Redis adapter and local emission to avoid duplicate fan-out.
+    Files: docker/socketio/auth.cjs; docker/socketio/socket.io.config.cjs
+    Evidence: Seven Node tests including live Redis/Socket.IO isolation and expiry
+23. Audit / logging / mass assignment | PARTIAL -> PASS | HIGH
+    Problem/risk: Sensitive nested values could survive redaction; identity fields mutable through general fill.
+    Correction/current implementation: Recursive redaction, sensitive parameter annotations, guarded phone/type/status, audited privileged mutations, scoped request context.
+    Files: app/Services/Audit; app/Models/User.php; app/Providers/AppServiceProvider.php
+    Evidence: AuditLoggerTest; AuditRegressionTest; AuthenticationFlowTest
+24. Database invariants / indexes / deletion | PARTIAL -> PASS | HIGH
+    Problem/risk: New domains absent; location cascade semantics unsafe.
+    Correction/current implementation: Unique phone/translations/operation keys, financial checks and ledger triggers, deliberate FKs and indexes; additive corrections.
+    Files: database/migrations
+    Evidence: MySQL/SQLite fresh migrate and repeated seed; AuditRegressionTest
+25. Concurrency / idempotency | NOT IMPLEMENTED -> PASS | CRITICAL
+    Problem/risk: No proven multi-process safety for money, callback or OTP operations.
+    Correction/current implementation: DB locks, unique keys, conditional writes; provider network calls outside financial transactions; consistent retry identities.
+    Files: app/Actions/Payments; app/Services/Wallet; app/Services/Auth
+    Evidence: Five real MySQL multi-process tests: debit, same-key mutation, OTP, webhook, competing refunds
+26. Docker / production config | PARTIAL -> PARTIAL | HIGH
+    Problem/risk: Debug forced on, DB/Redis publicly bound, broad PHP execution and absent scheduler.
+    Correction/current implementation: Environment-driven debug (forced off in production app config), loopback data ports, front-controller-only PHP, non-root worker/sidecar, scheduler.
+    Files: docker-compose.yml; docker; config/app.php; .env.example
+    Evidence: Compose validation + code review; full deployment/TLS/backup NOT RUNTIME VERIFIED
+27. Tests / formatting / syntax | PARTIAL -> PASS | HIGH
+    Problem/risk: Baseline had 4 failures and 20 errors (including root-owned logging and invalid test imports).
+    Correction/current implementation: Portable stderr logging/cache, repaired factories/imports, substantial behavior and concurrency regressions; Pint and syntax checks.
+    Files: tests; phpunit.xml
+    Evidence: 222 MySQL tests passed; 216 SQLite passed with 6 explained skips; 268 PHP syntax checks
+28. Static type analysis | NOT IMPLEMENTED -> NOT IMPLEMENTED | MEDIUM
+    Problem/risk: PHPStan/Larastan is not installed or configured.
+    Correction/current implementation: Reported honestly; runtime tests, lint and formatting are separate checks.
+    Files: composer.json
+    Evidence: NOT RUN: no configured analyzer
+29. Dependency security / build | FAIL -> PASS | CRITICAL
+    Problem/risk: npm audit found critical shell-quote dependency advisory through concurrently.
+    Correction/current implementation: Pinned compatible safe override, removed unused packages, refreshed lockfiles, smoke-tested concurrently; Composer/sidecar audits clean.
+    Files: package.json; package-lock.json; docker/socketio/package*.json
+    Evidence: Composer audit: 0; root/sidecar npm audits: 0; npm build passed
+30. Performance / caching / N+1 | NEEDS REVIEW -> PARTIAL | MEDIUM
+    Problem/risk: No load or production query baseline.
+    Correction/current implementation: Eager-loaded translations, paginated financial/category APIs, relevant compound indexes, bounded tree depth; optimize succeeded.
+    Files: app/Http/Controllers; app/Models; database/migrations
+    Evidence: STATIC CODE REVIEW + optimize; production load/large-data query plans pending
+31. Dead code / placeholders / documentation | FAIL -> PASS | MEDIUM
+    Problem/risk: Old unauthenticated realtime demo, duplicate JS config, unused controller/config, misleading README.
+    Correction/current implementation: Removed obsolete surfaces and updated setup/provider/realtime documentation; no unfinished business TODO found.
+    Files: README.md; routes/web.php; removed demo files
+    Evidence: Source scan + route inventory; one unused OTP translation key disclosed
+
+C. CRITICAL PROBLEMS FOUND
+- Realtime accepted unauthenticated sockets, arbitrary rooms and client-controlled global events. Replaced by signed short-lived own-user credentials, explicit room authorization and server-only allowlisted relays. Seven Node tests passed, including real Redis delivery and cross-user rejection.
+- Wallet, payment, verified webhooks and refunds were missing. Added durable SQL models, immutable ledger, integer money, locked transactions, idempotency keys/hashes, provider contracts and safe settlement/refund actions. MySQL concurrency tests prove the selected double-debit, duplicate-credit, replay and competing-refund cases.
+- npm audit identified the shell-quote advisory GHSA-pqg4-j6r4-53mv through concurrently. Added a safe compatible dependency override and ran the tool smoke test. Both npm audits and Composer audit now report zero advisories in their current databases.
+
+D. HIGH-PRIORITY PROBLEMS FOUND
+- Missing admin/OTP login, logout, profile and verified phone changes now have explicit flows and tests.
+- Role bypass is limited to active admins. Vendor approval cannot be bypassed by first changing a vendor to an intermediate status. Privileged status and role actions are audited.
+- PATCH requests no longer overwrite omitted location fields. Nested translated writes cannot inject arbitrary columns. Route numeric constraints cover every nested parameter.
+- Financial/identity retention uses restrictive FKs. Country deletion checks soft-deleted users. Seeding uses stable identifiers rather than mutable translated names.
+- Production exceptions no longer expose SQL, provider bodies or stack traces through the API. Production error reporting keeps only safe class/location/request identifiers.
+
+E. LOCALIZATION PROBLEMS FOUND
+- Added complete Arabic/English validation and domain catalogs, including authentication, OTP, wallet, payments, categories and notifications.
+- Corrected Arabic validation placeholder omissions and removed template-only validation entries. Attribution/license is preserved in THIRD_PARTY_NOTICES.txt.
+- Locale handling resets per request, supports regional language normalization and applies to unmatched API errors. Queued notifications capture recipient locale instead of inheriting worker locale.
+- Stable enum values, error codes, currency/ISO codes, route names and provider signatures remain untranslated. Technical exception internals are mapped to localized safe API errors.
+
+F. ARCHITECTURE PROBLEMS FOUND
+- Implemented thin controllers -> FormRequests -> focused Actions -> shared domain/provider services -> models -> Resources/jobs. Existing useful phone and audit contracts/DTOs were retained; no module architecture or meaningless repositories were added.
+- Payment and SMS registries allow named configurations; Stripe and Twilio are the concrete shipped adapters. Additional brands require adapters and tests. SMS selects the default provider; automatic cross-provider retries are intentionally absent.
+- Financial side effects are committed synchronously where consistency matters. Durable notification outbox publication is queued and recoverable by scheduler. After-commit domain events are extension points; delivery does not depend on an unregistered listener.
+- Removed obsolete realtime demo/controller, duplicate JS configuration, unused controller and missing-package Scramble config; rewrote the stale README.
+
+G. DATABASE PROBLEMS FOUND AND FINAL DATABASE REPORT
+- users.phone has a global nullable unique constraint; soft-deleted phone identities remain reserved. phone_country_id is indexed and restricted by FK.
+- Every country/governorate/city/category translation has UNIQUE(entity_id, locale) and an owning FK. Locale columns are indexed. Parent location/category deletion is RESTRICT; deleting a permitted parent entity cascades only its owned translations.
+- Wallets are unique by (user_id, currency). Wallet transactions are unique by (wallet_id, idempotency_key); balances and amounts have DB checks. UPDATE/DELETE ledger triggers prevent mutation even through query-builder writes.
+- Payments are unique by UUID, (user_id, idempotency_key), and (provider, provider_reference). Webhook events are unique by (provider, provider_event_id). Refunds are unique by UUID and (payment_id, idempotency_key). Request hashes reject conflicting reuse.
+- Financial FKs restrict deletion of users, wallets, payments and refund actors. Ledger wallet/time, payment/refund status/time, category parent/active/sort, notification recipient/time and unpublished/time indexes support the implemented queries.
+- OTP challenges use a unique scope and rotating challenge UUID. Notification event_key is unique, allowing retried business events to address the same durable notification.
+- Fresh migrations and seeding succeeded on disposable SQLite and MySQL databases; the full seeder ran a second time on each. SeederIdentityTest checks translated-name changes and preserved activation state. Production-data upgrade/restore rehearsal remains pending.
+- Supported target for production is MySQL 8; SQLite is used for fast tests. PostgreSQL/SQL Server migration compatibility is not claimed.
+
+H. SECURITY PROBLEMS FOUND AND FINAL SECURITY REPORT
+VERIFIED BY TEST: admin endpoint isolation; client/vendor isolation; RBAC; resource ownership; OTP replay/attempt/expiry controls; phone normalization and verified changes; webhook signature/mode/amount checks; payment and wallet idempotency; wallet contention; realtime room isolation; recursive audit secret masking; guarded profile/identity fields; safe exception envelopes even with debug enabled.
+VERIFIED BY STATIC CODE REVIEW: production app configuration forces debug false; production reports omit raw exception context; non-root sidecar/worker; front-controller-only Nginx PHP execution; loopback data-service ports; example provider secrets blank; application config reads env only through config files.
+NOT RUNTIME VERIFIED: actual production secret provisioning, deployed debug mode/TLS/reverse proxy rules, backup permissions, history-level committed-secret absence, external penetration test. No Git repository was available. Existing .env was not printed or rewritten.
+Issued socket credentials remain valid until expiry (120 seconds by default) after HTTP logout/blocking; clients are disconnected at expiry. Immediate global socket revocation is not implemented.
+
+I. CONCURRENCY PROBLEMS FOUND
+- OTP verification and its account mutation run under one locked SQL transaction; invalid attempt counts commit before the domain exception is returned. Simultaneous consumption yields one successful consumer.
+- Wallet row locks plus conditional balance writes and unique operation keys prevent overdraft and duplicate mutation. First-wallet creation is serialized on the user.
+- Payment/refund reservations serialize on payment rows; provider calls run outside the DB transaction and reuse stable UUID-derived provider keys. Webhook event insertion and ledger settlement commit together.
+- Category tree mutations serialize on a database lock row to prevent simultaneous moves from creating cycles; maximum depth is five.
+- Five separate-process MySQL tests passed: competing debits, identical idempotency keys, competing OTP consumers, repeated webhook settlement and competing refunds. These tests do not prove every possible interleaving under arbitrary outages.
+
+J. TESTS ADDED / CHANGED
+Added feature coverage: AuthenticationFlowTest, WalletSafetyTest, PaymentFlowTest, ConcurrencyTest, TranslationParityTest, AuditRegressionTest, AdminManagementTest, CategoryFlowTest, NotificationFlowTest, RedisQueueIntegrationTest, StripeGatewayTest and SeederIdentityTest; test-only RecordingSms and concurrent-worker fixtures.
+Expanded/repaired existing location, phone, audit and example tests where behavior changed. Added six socket credential unit cases and one live Socket.IO/Redis integration case. Baseline contained 161 tests; final suite contains 222. Tests use disposable databases and fake provider HTTP, except explicitly real MySQL/Redis/Socket.IO integration.
+
+K. FILES CHANGED
+Application/configuration/test/documentation manifest follows (snapshot comparison, not Git diff). Composer/Boost setup was in progress during initial snapshot, so their setup changes are included explicitly. Generated agent skills, dependencies, build outputs and test caches are excluded from this manifest. AUDIT_REPORT.txt and AUDIT_EVIDENCE.json are additional audit deliverables.
+modified: .env.example
+modified: .gitignore
+added: .mcp.json
+modified: AGENTS.md
+modified: CLAUDE.md
+modified: README.md
+added: THIRD_PARTY_NOTICES.txt
+added: app/Actions/Access/AssignUserRole.php
+added: app/Actions/Access/ChangeUserStatus.php
+added: app/Actions/Auth/LoginAdmin.php
+added: app/Actions/Auth/Logout.php
+added: app/Actions/Auth/VerifyPhoneLogin.php
+added: app/Actions/Category/SaveCategory.php
+modified: app/Actions/Location/DeleteCountry.php
+added: app/Actions/Payments/CreatePayment.php
+added: app/Actions/Payments/ProcessWebhook.php
+added: app/Actions/Payments/RefundPayment.php
+added: app/Actions/Profile/ChangePhone.php
+added: app/Actions/Profile/UpdateProfile.php
+added: app/Actions/Wallet/AdjustWallet.php
+added: app/Contracts/Payments/PaymentGatewayInterface.php
+added: app/Contracts/Sms/SmsProviderInterface.php
+modified: app/Enums/AuditAction.php
+modified: app/Enums/ErrorCode.php
+added: app/Enums/OtpPurpose.php
+added: app/Enums/PaymentStatus.php
+added: app/Enums/WalletTransactionType.php
+added: app/Events/PaymentReceived.php
+added: app/Events/PhoneChanged.php
+modified: app/Exceptions/ApiExceptionRenderer.php
+modified: app/Exceptions/AppException.php
+added: app/Exceptions/DomainException.php
+added: app/Http/Controllers/Admin/CategoryController.php
+added: app/Http/Controllers/Admin/FinanceController.php
+added: app/Http/Controllers/Admin/RefundController.php
+added: app/Http/Controllers/Admin/UserManagementController.php
+added: app/Http/Controllers/Admin/WalletAdjustmentController.php
+added: app/Http/Controllers/Auth/AdminLoginController.php
+added: app/Http/Controllers/Auth/LogoutController.php
+added: app/Http/Controllers/Auth/OtpController.php
+added: app/Http/Controllers/Shared/CategoryController.php
+added: app/Http/Controllers/Shared/NotificationController.php
+added: app/Http/Controllers/Shared/PaymentController.php
+added: app/Http/Controllers/Shared/PhoneChangeController.php
+added: app/Http/Controllers/Shared/ProfileController.php
+added: app/Http/Controllers/Shared/SocketTokenController.php
+added: app/Http/Controllers/Shared/WalletController.php
+added: app/Http/Controllers/WebhookController.php
+modified: app/Http/Middleware/SetLocale.php
+added: app/Http/Requests/Admin/CategoryRequest.php
+modified: app/Http/Requests/Admin/StoreCityRequest.php
+modified: app/Http/Requests/Admin/StoreCountryRequest.php
+modified: app/Http/Requests/Admin/StoreGovernorateRequest.php
+added: app/Http/Requests/Admin/UserRoleRequest.php
+added: app/Http/Requests/Admin/UserStatusRequest.php
+added: app/Http/Requests/Auth/AdminLoginRequest.php
+added: app/Http/Requests/Auth/OtpRequest.php
+added: app/Http/Requests/Auth/VerifyOtpRequest.php
+added: app/Http/Requests/Finance/PaymentRequest.php
+added: app/Http/Requests/Finance/RefundRequest.php
+added: app/Http/Requests/Finance/WalletAdjustmentRequest.php
+added: app/Http/Requests/Profile/UpdateProfileRequest.php
+added: app/Http/Requests/Shared/SearchCategoryRequest.php
+modified: app/Http/Requests/Shared/ValidatesTranslations.php
+added: app/Http/Resources/Shared/CategoryResource.php
+added: app/Http/Resources/Shared/PaymentResource.php
+added: app/Http/Resources/Shared/UserResource.php
+added: app/Http/Resources/Shared/WalletResource.php
+added: app/Http/Resources/Shared/WalletTransactionResource.php
+added: app/Jobs/PublishNotification.php
+modified: app/Models/AuditLog.php
+added: app/Models/Category.php
+added: app/Models/CategoryTranslation.php
+modified: app/Models/Governorate.php
+added: app/Models/OtpChallenge.php
+added: app/Models/Payment.php
+added: app/Models/PaymentRefund.php
+added: app/Models/PaymentWebhookEvent.php
+modified: app/Models/User.php
+added: app/Models/UserNotification.php
+added: app/Models/Wallet.php
+added: app/Models/WalletTransaction.php
+modified: app/Providers/AppServiceProvider.php
+modified: app/Services/Audit/AuditLogger.php
+added: app/Services/Audit/RedactSecrets.php
+added: app/Services/Auth/AuthenticationPhone.php
+added: app/Services/Auth/OtpService.php
+added: app/Services/Auth/SmsManager.php
+added: app/Services/Auth/TwilioSms.php
+added: app/Services/Notifications/NotificationOutbox.php
+added: app/Services/Payments/GatewayManager.php
+added: app/Services/Payments/StripeGateway.php
+modified: app/Services/Phone/LibPhoneNumberService.php
+added: app/Services/Realtime/SocketTokenService.php
+added: app/Services/Wallet/WalletService.php
+modified: app/Support/ApiResponse.php
+added: boost.json
+modified: bootstrap/app.php
+modified: composer.json
+modified: composer.lock
+modified: config/app.php
+added: config/otp.php
+added: config/payments.php
+modified: config/queue.php
+added: config/realtime.php
+modified: config/sanctum.php
+added: config/sms.php
+modified: database/data/cities.php
+modified: database/factories/CityFactory.php
+modified: database/factories/CountryFactory.php
+modified: database/factories/GovernorateFactory.php
+added: database/migrations/2026_10_07_061807_create_otp_challenges_table.php
+added: database/migrations/2026_10_07_061808_create_financial_tables.php
+added: database/migrations/2026_10_07_061809_create_categories_and_notifications_tables.php
+added: database/migrations/2026_10_07_061810_restrict_location_parent_deletion.php
+added: database/migrations/2026_10_07_063319_enforce_financial_invariants.php
+added: database/migrations/2026_10_07_063320_backfill_stable_city_seed_codes.php
+modified: database/seeders/CitySeeder.php
+modified: database/seeders/CountrySeeder.php
+modified: database/seeders/DatabaseSeeder.php
+modified: database/seeders/GovernorateSeeder.php
+modified: docker-compose.yml
+modified: docker/nginx/default.conf
+modified: docker/socketio/Dockerfile
+added: docker/socketio/auth.cjs
+added: docker/socketio/auth.test.cjs
+modified: docker/socketio/ecosystem.config.js
+added: docker/socketio/integration.test.cjs
+modified: docker/socketio/package-lock.json
+modified: docker/socketio/package.json
+modified: docker/socketio/socket.io.config.cjs
+added: lang/ar/auth.php
+added: lang/ar/categories.php
+modified: lang/ar/errors.php
+added: lang/ar/notifications.php
+added: lang/ar/otp.php
+added: lang/ar/payments.php
+added: lang/ar/validation.php
+added: lang/ar/wallet.php
+added: lang/en/auth.php
+added: lang/en/categories.php
+modified: lang/en/errors.php
+added: lang/en/notifications.php
+added: lang/en/otp.php
+added: lang/en/payments.php
+added: lang/en/validation.php
+added: lang/en/wallet.php
+modified: package-lock.json
+modified: package.json
+modified: phpunit.xml
+modified: routes/admin.php
+modified: routes/api.php
+modified: routes/channels.php
+modified: routes/client.php
+modified: routes/console.php
+modified: routes/locations.php
+modified: routes/vendor.php
+modified: routes/web.php
+modified: routes/webhooks.php
+modified: tests/Feature/Audit/AuditLoggerTest.php
+added: tests/Feature/Auth/AuthenticationFlowTest.php
+added: tests/Feature/Categories/CategoryFlowTest.php
+added: tests/Feature/Finance/ConcurrencyTest.php
+added: tests/Feature/Finance/PaymentFlowTest.php
+added: tests/Feature/Finance/WalletSafetyTest.php
+added: tests/Feature/Localization/TranslationParityTest.php
+modified: tests/Feature/Locations/LocationHierarchyRuleTest.php
+added: tests/Feature/Locations/SeederIdentityTest.php
+added: tests/Feature/Notifications/NotificationFlowTest.php
+added: tests/Feature/Notifications/RedisQueueIntegrationTest.php
+added: tests/Feature/Providers/StripeGatewayTest.php
+added: tests/Feature/Security/AdminManagementTest.php
+added: tests/Feature/Security/AuditRegressionTest.php
+added: tests/Fixtures/RecordingSms.php
+added: tests/Fixtures/concurrent-worker.php
+modified: tests/Unit/Phone/LibPhoneNumberServiceTest.php
+deleted: app/Events/MessageSent.php
+deleted: app/Http/Controllers/RealTimeController.php
+deleted: app/Http/Controllers/UserController.php
+deleted: config/scramble.php
+deleted: docker/socketio/socket.io.config.js
+deleted: resources/views/welcome.blade.php
+
+L. COMMANDS EXECUTED
+Prerequisites/setup: php -v; composer -V; Linux php.new installer (rerun with TERM=xterm); composer require laravel/boost --dev; php artisan boost:install --no-interaction; composer show; package manifest inspection.
+Inspection: rg/rg --files; php artisan route:list --json; Docker service inventory; source and migration review. Initial/final route inventories were compared.
+Validation: composer validate --strict; COMPOSER_IPRESOLVE=4 composer audit --format=json; npm audit --json; npm --prefix docker/socketio audit --json; npm run build; docker compose config --quiet; concurrently smoke test after dependency override.
+Formatting: vendor/bin/pint --format agent and final vendor/bin/pint --dirty --format agent. Syntax: php -l over 268 application/bootstrap/configuration/database/language/route/test PHP files.
+Runtime: php artisan test --compact (SQLite); isolated MySQL/Redis environment + /home/metrial/.config/herd-lite/bin/php artisan test --compact; focused regression suites after changes; php artisan test --compact tests/Feature/Localization/TranslationParityTest.php after expanding package-catalog coverage.
+Concurrency: separate PHP processes launched by ConcurrencyTest against the isolated MySQL database. Redis: RUN_REDIS_INTEGRATION=1 with isolated host/port/prefix. Realtime: TEST_REDIS_PORT=32769 node --test docker/socketio/auth.test.cjs docker/socketio/integration.test.cjs.
+Migrations: php artisan migrate:fresh --seed --force --no-interaction, then php artisan db:seed --force --no-interaction, on disposable SQLite and isolated MySQL only. php artisan optimize --no-interaction with temporary config/routes/events/views cache paths. Existing app database and cache paths were not used for these destructive/cache checks.
+Exact normalized results and file inventory: AUDIT_EVIDENCE.json. Working transcripts remain under /tmp/metrial-* for this session; these temporary files are not permanent repository evidence.
+
+M. TEST RESULTS
+Full SQLite: 222 discovered, 216 passed, 6 skipped, 2,762 assertions. Skips: five MySQL multi-process cases and one explicitly opt-in Redis integration.
+Full MySQL + real Redis: 222 passed, zero failed/skipped, 2,795 assertions. Final later parity-only expansion: 2 passed, 728 assertions, now including the two package override keys.
+Socket.IO: 7 passed, zero failed/skipped, with live Redis relay, authenticated socket exchange, recipient isolation and expiry disconnect.
+PHP syntax: 268 files, zero errors. Pint passed. Composer validation passed. Composer advisories/abandoned packages: zero. Root and sidecar npm audit advisories: zero. Vite build passed with non-failing optional fontaine warning. Docker Compose validation passed. Fresh migration/seed/reseed and optimize passed.
+PHPStan/Larastan: NOT INSTALLED / NOT RUN. No coverage percentage is claimed. No Stripe/Twilio live network success is claimed.
+
+N. TRANSLATION PARITY RESULTS
+English: 11 application files, 237 application keys. Arabic: 11 application files, 237 application keys. Package override catalogs: one file/two keys per language. Total: 12 files and 239 keys per language.
+Missing EN keys: 0. Missing AR keys: 0. Placeholder mismatches: 0. Recursive parity tests verify nonempty strings and matching placeholder occurrences, including vendor/translatable overrides.
+Unused detectable key: otp.verified is present in both catalogs but has no current runtime reference (login uses auth.login). Framework validation/error/enum entries are dynamically selected; messages.created/updated/deleted and resource names are dynamically composed and are used. Exhaustive dynamic unused-key detection is not claimed.
+Hard-coded accidental human-facing message findings after correction: 0 in inspected API/domain message paths. Intentionally unchanged technical strings include stable machine error codes, enum/status/ISO/currency identifiers, private room/event names, provider API fields/signatures, SQL trigger diagnostic identifiers, CLI/Node operational diagnostics and the root service/health status payload. Middleware internal exception text is never used as the human-facing API message.
+Arabic catalogs contain Arabic text, not English placeholders; location seed tests verify Arabic/English data persistence. A native-speaker editorial review remains a quality gate, separate from structural parity.
+
+O. REMAINING RISKS / RELEASE CONDITIONS
+1. Configure real Stripe and Twilio credentials, correct Stripe live/test mode, webhook endpoint and signing secret; complete sandbox charge, delayed webhook, refund, timeout/retry and actual SMS-delivery drills. Provider interfaces and local behavior are implemented; external acceptance is not verified.
+2. Define the operational reconciliation process. An ambiguous payment/refund older than 23 hours intentionally refuses new provider retries. Inspect provider records by the internal UUID metadata/reference, recover authoritative signed settlement callbacks, and reconcile pending SQL reservations. No automated provider polling/reconciliation command is shipped. Never bypass the guard with a new idempotency key or edit immutable ledger rows.
+3. Provision production secrets, admin access, TLS/reverse proxy, queue and scheduler supervision, failed-job/outbox/Redis-memory monitoring, DB backups and restore procedures. Compose has development credential fallbacks; do not deploy those values. The current filesystem also had root-owned old log/cache files; deployment must ensure runtime-owned writable storage/cache.
+4. Rehearse the additive migrations against a sanitized copy of actual existing data and verify restore/rollback operations. Fresh-schema tests do not establish compatibility with every historical dirty dataset.
+5. Performance and resilience remain unmeasured at production scale: load, queue backlog, multi-node socket failover and DB query plans on large translated datasets. Outbox/Redis delivery is at least once; clients deduplicate notification IDs and use the notifications endpoint to recover missed pub/sub messages.
+6. General email and FCM delivery are not implemented; addresses are absent and were treated as conditional audit scope. If these are release requirements, complete their product/provider specifications and implementation before release. Multiple named providers are supported, but only Stripe and Twilio concrete adapters are shipped.
+7. Add and baseline a static analyzer when adopting its dependency/configuration; commission native Arabic review and independent security review. No repository history was available for a committed-secret audit.
+
+P. PRODUCTION READINESS SCORES (0-10; ENGINEERING JUDGMENT, NOT CERTIFICATION)
+Architecture: 9/10 — Focused Laravel monolith and explicit external contracts.
+Laravel Best Practices: 9/10 — FormRequests, Resources, Actions, queue jobs, bindings and framework migrations.
+Code Quality: 8.5/10 — Runtime checks are strong; static type analysis and a second independent review remain.
+SOLID: 9/10 — Provider adapters and focused use cases; no unnecessary repository layer.
+Database Design: 9/10 — MySQL constraints, deliberate deletion policies and real contention tests.
+Authentication: 9/10 — Admin and OTP login tested across statuses and actor types.
+Authorization/RBAC: 9/10 — Actor gates, permissions, ownership, super-admin and vendor approval regressions.
+International Phone Handling: 9/10 — libphonenumber integration, canonical storage and country/mobile policy tests.
+OTP Security: 9/10 — Hashing, scope, lifetime, attempt/cooldown limits and atomic consumption tested.
+Localization: 9/10 — Recursive application and package key/placeholder parity; locale resolution tested.
+Arabic Coverage: 8.5/10 — Complete key parity; native-speaker editorial review of all prose and future channels remains.
+English Coverage: 9/10 — All shipped domain messages and validation catalog available.
+Wallet Safety: 9/10 — Immutable integer ledger, SQL constraints, row locks and real concurrency tests.
+Payment Safety: 8/10 — Stripe sandbox/live merchant validation and operational reconciliation drill remain.
+Concurrency: 9/10 — Five independent-process MySQL scenarios passed; no claim of exhaustive race proof.
+Idempotency: 9/10 — Scoped hashes/unique keys and stable provider keys; aged ambiguous retries fail closed.
+Security: 8.5/10 — Deployment hardening verification, secret/history review and independent penetration testing remain.
+Realtime Security: 8.5/10 — Room/signature/expiry tests pass; TLS and multi-node load/failover not exercised; revocation has short expiry window.
+Testing: 8.5/10 — 222 MySQL cases plus seven socket cases; no static analyzer, coverage metric or live provider tests.
+Performance: 7/10 — No representative load, production-scale query plans or queue/failover benchmark.
+Production Readiness: 7.5/10 — Provider commissioning, deployment/secret/backup monitoring and reconciliation operations are release conditions.
+
+Q. FINAL VERDICT
+READY WITH CONDITIONS
+The implemented local application paths pass the stated checks. Production launch is conditional on the provider, operational, deployment and scope decisions above. PRODUCTION READY is deliberately not claimed.

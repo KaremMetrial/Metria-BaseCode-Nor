@@ -5,7 +5,9 @@ namespace App\Actions\Wallet;
 use App\Contracts\Audit\AuditLoggerInterface;
 use App\DTOs\Audit\AuditEntry;
 use App\Enums\AuditAction;
+use App\Enums\ErrorCode;
 use App\Enums\WalletTransactionType;
+use App\Exceptions\DomainException;
 use App\Models\User;
 use App\Models\Wallet;
 use App\Models\WalletTransaction;
@@ -18,9 +20,10 @@ final class AdjustWallet
 
     public function execute(User $actor, Wallet $wallet, array $data): WalletTransaction
     {
-        if (!$actor->isAdmin() || !$actor->isActive() || !$actor->can('wallets.adjust') || !in_array($data['direction'],['credit','debit'],true) || !$actor->can('wallets.'.$data['direction'])) {
-            throw new \App\Exceptions\DomainException(\App\Enums\ErrorCode::FORBIDDEN);
+        if (! $actor->isAdmin() || ! $actor->isActive() || ! $actor->can('wallets.adjust') || ! in_array($data['direction'], ['credit', 'debit'], true) || ! $actor->can('wallets.'.$data['direction'])) {
+            throw new DomainException(ErrorCode::FORBIDDEN);
         }
+
         return DB::transaction(function () use ($actor, $wallet, $data): WalletTransaction {
             $entry = $this->wallets->change($wallet, WalletTransactionType::from($data['direction']), (int) $data['amount'], 'admin:'.hash('sha256', $data['idempotency_key']), $data['reason']);
             if ($entry->wasRecentlyCreated) {

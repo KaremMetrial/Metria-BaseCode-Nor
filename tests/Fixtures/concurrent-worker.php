@@ -2,13 +2,17 @@
 
 use App\Actions\Auth\VerifyPhoneLogin;
 use App\Actions\Payments\ProcessWebhook;
+use App\Actions\Payments\RefundPayment;
 use App\Enums\UserType;
 use App\Enums\WalletTransactionType;
 use App\Exceptions\DomainException;
+use App\Models\Payment;
+use App\Models\User;
 use App\Models\Wallet;
 use App\Services\Payments\StripeGateway;
 use App\Services\Wallet\WalletService;
 use Illuminate\Contracts\Console\Kernel;
+use Illuminate\Support\Facades\Http;
 use Tests\Fixtures\RecordingSms;
 
 require __DIR__.'/../../vendor/autoload.php';
@@ -24,10 +28,10 @@ while (! is_file($data['barrier'].'.go')) {
     }
     usleep(10000);
 }
-\Illuminate\Support\Facades\Http::fake(['https://api.stripe.com/v1/refunds' => fn($request) => \Illuminate\Support\Facades\Http::response(['id'=>'re_'.$request['metadata']['refund_uuid'],'status'=>'succeeded'])]);
+Http::fake(['https://api.stripe.com/v1/refunds' => fn ($request) => Http::response(['id' => 're_'.$request['metadata']['refund_uuid'], 'status' => 'succeeded'])]);
 try {
     match ($data['operation']) {
-        'refund' => app(App\Actions\Payments\RefundPayment::class)->execute(App\Models\User::findOrFail($data['actor']), App\Models\Payment::findOrFail($data['payment']), 80, $data['key']),
+        'refund' => app(RefundPayment::class)->execute(User::findOrFail($data['actor']), Payment::findOrFail($data['payment']), 80, $data['key']),
         'debit' => app(WalletService::class)->change(Wallet::findOrFail($data['wallet']), WalletTransactionType::DEBIT, 80, $data['key'], 'concurrent'),
         'otp' => app(VerifyPhoneLogin::class)->execute($data['input'], UserType::CLIENT),
         'webhook' => app(ProcessWebhook::class)->execute('stripe', $data['body'], ['stripe-signature' => [$data['signature']]]),

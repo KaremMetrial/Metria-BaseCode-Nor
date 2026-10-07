@@ -169,7 +169,7 @@ class AuthenticationFlowTest extends TestCase
     {
         $phone = $this->phone();
         config(['sms.default' => 'disabled']);
-        $this->postJson('/api/v1/client/auth/otp/request',$phone)->assertServiceUnavailable();
-        $this->assertDatabaseCount('otp_challenges',0);
+        $this->postJson('/api/v1/client/auth/otp/request', $phone)->assertServiceUnavailable();
+        $this->assertDatabaseCount('otp_challenges', 0);
     }
 }

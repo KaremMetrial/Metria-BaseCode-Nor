@@ -47,5 +47,6 @@ return [
     'INVALID_WEBHOOK' => 'The payment notification could not be verified.',
     'PAYMENT_ALREADY_REFUNDED' => 'The payment has already been refunded.',
     'RECONCILIATION_REQUIRED' => 'This operation requires reconciliation before it can continue.',
+    'CATEGORY_DEPTH_EXCEEDED' => 'The category exceeds the supported nesting depth.',
     'CATEGORY_CYCLE' => 'A category cannot be its own ancestor.',
 ];

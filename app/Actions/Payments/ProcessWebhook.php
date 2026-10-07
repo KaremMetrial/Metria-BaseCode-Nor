@@ -19,7 +19,7 @@ use Illuminate\Support\Facades\DB;
 
 final class ProcessWebhook
 {
-    public function __construct(private readonly GatewayManager $gateways, private readonly WalletService $wallets, private readonly RefundPayment $refunds) {}
+    public function __construct(private readonly GatewayManager $gateways, private readonly WalletService $wallets, private readonly RefundPayment $refunds, private readonly NotificationOutbox $notifications) {}
 
     public function execute(string $provider, string $body, array $headers): void
     {
@@ -76,7 +76,7 @@ final class ProcessWebhook
                 }
                 $this->wallets->change(Wallet::query()->findOrFail($payment->wallet_id), WalletTransactionType::CREDIT, $payment->amount, 'payment:'.$payment->uuid, 'payment_received');
                 $payment->forceFill(['provider_reference' => $event['reference'], 'status' => PaymentStatus::PAID])->save();
-                app(NotificationOutbox::class)->record(User::withTrashed()->findOrFail($payment->user_id), 'notifications.payment_received', ['amount' => $payment->amount, 'currency' => $payment->currency], 'payment:'.$payment->uuid);
+                $this->notifications->record(User::withTrashed()->findOrFail($payment->user_id), 'notifications.payment_received', ['amount' => sprintf('%d.%02d', intdiv($payment->amount, 100), $payment->amount % 100), 'currency' => $payment->currency], 'payment:'.$payment->uuid);
                 event(new PaymentReceived($payment->id));
             } elseif (in_array($payment->status, [PaymentStatus::PENDING, PaymentStatus::PROCESSING], true)) {
                 if (($event['status'] ?? '') !== 'canceled') {
