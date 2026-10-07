@@ -6,10 +6,12 @@ use App\Http\Middleware\EnsureAccountIsActive;
 use App\Http\Middleware\EnsureUserType;
 use App\Http\Middleware\ForceJsonResponse;
 use App\Http\Middleware\SetLocale;
+use App\Support\RequestId;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Spatie\Permission\Middleware\PermissionMiddleware;
 use Spatie\Permission\Middleware\RoleMiddleware;
 
@@ -44,7 +46,6 @@ return Application::configure(basePath: dirname(__DIR__))
         // Locale resolution is in the group (not per-route) so public endpoints
         // are localized too.
 
-
         $middleware->alias([
             'actor' => EnsureUserType::class,
             'active' => EnsureAccountIsActive::class,
@@ -64,6 +65,15 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
+        $exceptions->report(function (Throwable $e) {
+            if (app()->environment('production')) {
+                Log::error('Unhandled application error', ['exception_class' => $e::class, 'file' => basename($e->getFile()), 'line' => $e->getLine(), 'request_id' => app(RequestId::class)->value()]);
+
+                return false;
+            }
+
+            return null;
+        });
         $exceptions->shouldRenderJsonWhen(
             fn (Request $request) => $request->is('api/*') || $request->expectsJson(),
         );

@@ -4,6 +4,7 @@ namespace App\Exceptions;
 
 use App\Enums\ErrorCode;
 use App\Support\ApiResponse;
+use Illuminate\Contracts\Debug\ShouldntReport;
 use RuntimeException;
 use Throwable;
 
@@ -19,7 +20,7 @@ use Throwable;
  * Anything that is not an AppException is treated as an unexpected bug and is
  * rendered as INTERNAL_ERROR, which stops internal details leaking by accident.
  */
-abstract class AppException extends RuntimeException implements \Illuminate\Contracts\Debug\ShouldntReport
+abstract class AppException extends RuntimeException implements ShouldntReport
 {
     public function __construct(?string $message = null, ?Throwable $previous = null)
     {

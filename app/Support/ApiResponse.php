@@ -3,6 +3,7 @@
 namespace App\Support;
 
 use App\Enums\ErrorCode;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Http\JsonResponse;
 
 /**
@@ -19,8 +20,9 @@ use Illuminate\Http\JsonResponse;
  */
 final class ApiResponse
 {
-    public static function paginated(string $resource, \Illuminate\Contracts\Pagination\LengthAwarePaginator $page): JsonResponse {
-        return self::success(['items'=>$resource::collection($page->items()),'meta'=>['current_page'=>$page->currentPage(),'last_page'=>$page->lastPage(),'per_page'=>$page->perPage(),'total'=>$page->total()]]);
+    public static function paginated(string $resource, LengthAwarePaginator $page): JsonResponse
+    {
+        return self::success(['items' => $resource::collection($page->items()), 'meta' => ['current_page' => $page->currentPage(), 'last_page' => $page->lastPage(), 'per_page' => $page->perPage(), 'total' => $page->total()]]);
     }
 
     public static function success(mixed $data = null, ?string $message = null, int $status = 200): JsonResponse
@@ -82,7 +84,7 @@ final class ApiResponse
             ErrorCode::METHOD_NOT_ALLOWED => 405,
 
             ErrorCode::PHONE_ALREADY_EXISTS,
-            ErrorCode::RESOURCE_IN_USE => 409,
+            ErrorCode::RESOURCE_IN_USE, ErrorCode::RESOURCE_CONFLICT => 409,
 
             ErrorCode::VALIDATION_FAILED,
             ErrorCode::UNSUPPORTED_LOCALE,

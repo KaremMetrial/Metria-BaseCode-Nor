@@ -23,33 +23,6 @@ use Illuminate\Support\Str;
  */
 final class AuditLogger implements AuditLoggerInterface
 {
-    private const REDACTED = '[REDACTED]';
-
-    /**
-     * Keys whose values must never be persisted.
-     *
-     * Deliberately does not include generic names like "code" or "id", which
-     * appear legitimately in many contexts; over-redaction makes an audit log
-     * useless.
-     *
-     * @var list<string>
-     */
-    private const SENSITIVE_KEYS = [
-        'password',
-        'password_confirmation',
-        'current_password',
-        'new_password',
-        'remember_token',
-        'token',
-        'access_token',
-        'refresh_token',
-        'api_key',
-        'private_key',
-        'secret',
-        'otp',
-        'otp_code',
-    ];
-
     public function __construct(private readonly RequestId $requestId) {}
 
     public function record(AuditEntry $entry): void

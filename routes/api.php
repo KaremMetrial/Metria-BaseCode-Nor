@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Shared\CategoryController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -30,8 +31,8 @@ Route::prefix('v1')
         // Public reference data: geography is needed before authentication
         // exists (country picker, calling code for the phone/OTP flow).
         require base_path('routes/locations.php');
-        Route::get('categories',[\App\Http\Controllers\Shared\CategoryController::class,'index'])->middleware('throttle:api')->name('categories.index');
-        Route::get('categories/{category}',[\App\Http\Controllers\Shared\CategoryController::class,'show'])->whereNumber('category')->middleware('throttle:api')->name('categories.show');
+        Route::get('categories', [CategoryController::class, 'index'])->middleware('throttle:api')->name('categories.index');
+        Route::get('categories/{category}', [CategoryController::class, 'show'])->whereNumber('category')->middleware('throttle:api')->name('categories.show');
 
         require base_path('routes/admin.php');
         require base_path('routes/client.php');

@@ -43,7 +43,7 @@ final class LibPhoneNumberService implements PhoneNumberServiceInterface
             throw InvalidPhoneNumberException::make($region, $e);
         }
 
-        if (! $this->util->isValidNumber($parsed)) {
+        if ($parsed->hasExtension() || ! $this->util->isValidNumber($parsed)) {
             throw InvalidPhoneNumberException::make($region);
         }
 
@@ -61,7 +61,7 @@ final class LibPhoneNumberService implements PhoneNumberServiceInterface
         // so such a number is not usable as an account identifier.
         $resolvedRegion = $parsedRegion ?? $region;
 
-        if ($resolvedRegion === null) {
+        if ($resolvedRegion === null || $resolvedRegion === self::NON_GEOGRAPHICAL_REGION) {
             throw InvalidPhoneNumberException::make(null);
         }
 

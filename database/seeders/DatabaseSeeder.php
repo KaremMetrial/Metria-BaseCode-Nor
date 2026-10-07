@@ -48,7 +48,7 @@ class DatabaseSeeder extends Seeder
      */
     private function seedDevelopmentAdmin(): void
     {
-        if (app()->environment('production')) {
+        if (! app()->environment(['local', 'development', 'testing'])) {
             return;
         }
 

@@ -12,6 +12,7 @@ return [
     'NOT_FOUND' => 'The requested resource was not found.',
     'METHOD_NOT_ALLOWED' => 'The request method is not supported for this endpoint.',
     'VALIDATION_FAILED' => 'The submitted data is invalid.',
+    'RESOURCE_CONFLICT' => 'The operation conflicts with existing data.',
     'RESOURCE_IN_USE' => 'This item is still in use and cannot be removed.',
     'RATE_LIMITED' => 'Too many attempts. Please try again later.',
     'INTERNAL_ERROR' => 'An unexpected error occurred. Please try again later.',

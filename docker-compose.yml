@@ -111,7 +111,7 @@ services:
     networks:
       - metrial-network
 
-  queue:
+  queue: &queue-service
     build:
       context: .
       dockerfile: docker/php/Dockerfile
@@ -147,6 +147,11 @@ services:
       - socketio
     networks:
       - metrial-network
+
+  scheduler:
+    <<: *queue-service
+    container_name: metrial_scheduler
+    command: php /var/www/html/artisan schedule:work
 
 networks:
   metrial-network:

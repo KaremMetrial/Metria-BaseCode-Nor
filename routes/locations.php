@@ -28,7 +28,7 @@ use Illuminate\Support\Facades\Route;
 Route::prefix('locations')
     ->as('locations.')
     ->middleware('throttle:api')
-    ->whereNumber(['country','governorate','city'])
+    ->whereNumber(['country', 'governorate', 'city'])
     ->group(function (): void {
         // Step 1: the countries we operate in.
         Route::get('countries', [CountryController::class, 'index'])->name('countries.index');

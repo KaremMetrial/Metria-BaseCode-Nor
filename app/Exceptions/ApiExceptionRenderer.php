@@ -24,8 +24,7 @@ use Throwable;
  * lets Laravel's default handling continue (so web routes keep their HTML error
  * pages).
  *
- * Anything reaching the final null is an unhandled bug: Laravel renders it as
- * 500 and, with APP_DEBUG=false, exposes nothing internal.
+ * Unhandled API failures always use a localized, safe 500 envelope.
  */
 final class ApiExceptionRenderer
 {
@@ -33,6 +32,13 @@ final class ApiExceptionRenderer
     {
         if (! self::isApiRequest($request)) {
             return null;
+        }
+
+        if ($e instanceof \Illuminate\Database\UniqueConstraintViolationException) {
+            return ApiResponse::error(ErrorCode::RESOURCE_CONFLICT);
+        }
+        if ($e instanceof \Illuminate\Database\QueryException && in_array((int)($e->errorInfo[1] ?? 0), [1451,1452], true)) {
+            return ApiResponse::error(ErrorCode::RESOURCE_IN_USE);
         }
 
         // Deliberate, expected domain failures.

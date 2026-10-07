@@ -4,7 +4,7 @@ module.exports = {
   apps: [
     {
       name: 'socketio',
-      script: 'socket.io.config.js',
+      script: 'socket.io.config.cjs',
       watch: false,
       autorestart: true,
       max_memory_restart: '512M',

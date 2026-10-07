@@ -1,2 +1,3 @@
 <?php
-return ['saved'=>'Category saved.','deleted'=>'Category deleted.'];
+
+return ['saved' => 'Category saved.', 'deleted' => 'Category deleted.'];

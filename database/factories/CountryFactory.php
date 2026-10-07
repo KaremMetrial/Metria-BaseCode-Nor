@@ -3,6 +3,7 @@
 namespace Database\Factories;
 
 use App\Models\Country;
+use Giggsey\Locale\Locale;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
@@ -40,7 +41,7 @@ class CountryFactory extends Factory
         // the API resource would render null and a form would show a blank.
         return $this->afterCreating(function (Country $country): void {
             if (! $country->hasTranslation('en')) {
-                $this->translate($country, 'en', \Giggsey\Locale\Locale::getDisplayRegion('en-'.$country->iso2,'en'));
+                $this->translate($country, 'en', Locale::getDisplayRegion('en-'.$country->iso2, 'en'));
             }
         });
     }
@@ -66,7 +67,7 @@ class CountryFactory extends Factory
     public function withArabicName(?string $name = null): static
     {
         return $this->afterCreating(function (Country $country) use ($name): void {
-            $this->translate($country, 'ar', $name ?? \Giggsey\Locale\Locale::getDisplayRegion('en-'.$country->iso2,'en'));
+            $this->translate($country, 'ar', $name ?? Locale::getDisplayRegion('en-'.$country->iso2, 'en'));
         });
     }
 

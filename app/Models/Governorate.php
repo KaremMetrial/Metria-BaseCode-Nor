@@ -19,7 +19,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property int $id
  * @property int $country_id
  * @property string|null $code
- * @property GovernorateType|null $type  (see casts())
+ * @property GovernorateType|null $type (see casts())
  * @property bool $is_active
  * @property-read string $name
  */

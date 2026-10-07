@@ -4,7 +4,6 @@ namespace Database\Seeders;
 
 use App\Models\City;
 use App\Models\Governorate;
-use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Seeder;
 use RuntimeException;
 
@@ -35,7 +34,7 @@ class CitySeeder extends Seeder
             }
 
             foreach ($cities as $index => $city) {
-                $model = City::query()->firstOrNew(['governorate_id'=>$governorate->id,'code'=>$city['code']]);
+                $model = City::query()->firstOrNew(['governorate_id' => $governorate->id, 'code' => $city['code']]);
 
                 $model->fill([
                     'governorate_id' => $governorate->getKey(),

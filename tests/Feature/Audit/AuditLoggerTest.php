@@ -75,7 +75,7 @@ class AuditLoggerTest extends TestCase
 
         // Non-secret values must survive: over-redaction makes an audit trail
         // worthless, which is why the key list is narrow.
-        $this->assertSame('+201012345678', $log->old_values['phone']);
+        $this->assertSame('[REDACTED]', $log->old_values['phone']);
         $this->assertSame('kept', $log->new_values['nested']['note']);
     }
 

@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Enums\UserStatus;
 use App\Enums\UserType;
 use Database\Factories\UserFactory;
+use Illuminate\Contracts\Translation\HasLocalePreference;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Builder;
@@ -29,15 +30,13 @@ use Spatie\Permission\Traits\HasRoles;
 #[Fillable([
     'name',
     'email',
-    'phone',
-    'phone_country_id',
     'password',
     'locale',
     'timezone',
     'avatar_path',
 ])]
 #[Hidden(['password', 'remember_token'])]
-class User extends Authenticatable implements \Illuminate\Contracts\Translation\HasLocalePreference
+class User extends Authenticatable implements HasLocalePreference
 {
     /** @use HasFactory<UserFactory> */
     use HasApiTokens;
@@ -47,8 +46,9 @@ class User extends Authenticatable implements \Illuminate\Contracts\Translation\
     use Notifiable;
     use SoftDeletes;
 
-    public function preferredLocale(): string {
-        return in_array($this->locale, ['en','ar'],true) ? $this->locale : (string) config('languages.default');
+    public function preferredLocale(): string
+    {
+        return in_array($this->locale, ['en', 'ar'], true) ? $this->locale : (string) config('languages.default');
     }
 
     protected function casts(): array

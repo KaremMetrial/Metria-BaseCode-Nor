@@ -25,8 +25,10 @@ final class SetLocale
 {
     public function handle(Request $request, Closure $next): Response
     {
-        app()->setLocale((string) config('languages.default','en'));
-        if (! $request->is('api/*')) { return $next($request); }
+        app()->setLocale((string) config('languages.default', 'en'));
+        if (! $request->is('api/*')) {
+            return $next($request);
+        }
         app()->setLocale($this->resolve($request));
 
         return $next($request);
@@ -40,6 +42,10 @@ final class SetLocale
 
         $explicit = $request->query('locale')
             ?? $request->header((string) config('languages.header', 'X-Locale'));
+
+        if ($explicit !== null && ! is_string($explicit)) {
+            throw UnsupportedLocaleException::make('');
+        }
 
         if (is_string($explicit) && $explicit !== '') {
             $normalized = strtolower($explicit);
@@ -65,7 +71,7 @@ final class SetLocale
             }
 
             // Regional variants degrade to their base language: "ar-EG" -> "ar".
-            $base = explode('-', str_replace('_','-',$normalized))[0];
+            $base = explode('-', str_replace('_', '-', $normalized))[0];
 
             if (in_array($base, $supported, true)) {
                 return $base;

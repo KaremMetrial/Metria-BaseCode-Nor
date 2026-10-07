@@ -1,2 +1,3 @@
 <?php
-return ['adjusted'=>'The wallet has been adjusted.'];
+
+return ['adjusted' => 'The wallet has been adjusted.'];
