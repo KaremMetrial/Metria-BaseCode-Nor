@@ -66,6 +66,8 @@ services:
       retries: 6
   db:
     image: mysql:8.0
+    # Required for the immutable-ledger triggers with a non-root migration user.
+    command: ['--log-bin-trust-function-creators=1']
     environment:
       MYSQL_DATABASE: ${DB_DATABASE:?Set DB_DATABASE}
       MYSQL_USER: ${DB_USERNAME:?Set a non-root DB_USERNAME}
