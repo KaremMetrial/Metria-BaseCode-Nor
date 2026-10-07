@@ -7,6 +7,7 @@ use App\DTOs\Audit\AuditEntry;
 use App\Enums\AuditAction;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
+use Laravel\Sanctum\Contracts\HasAbilities;
 use Laravel\Sanctum\PersonalAccessToken;
 
 final class Logout
@@ -16,7 +17,7 @@ final class Logout
     public function execute(User $user): void
     {
         DB::transaction(function () use ($user): void {
-            /** @var \Laravel\Sanctum\Contracts\HasAbilities|null $token */
+            /** @var HasAbilities|null $token */
             $token = $user->currentAccessToken();
             if ($token instanceof PersonalAccessToken) {
                 $token->delete();

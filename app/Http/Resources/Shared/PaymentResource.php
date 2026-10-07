@@ -3,10 +3,11 @@
 namespace App\Http\Resources\Shared;
 
 use App\Enums\PaymentStatus;
+use App\Models\Payment;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
-/** @mixin \App\Models\Payment */
+/** @mixin Payment */
 final class PaymentResource extends JsonResource
 {
     public function toArray(Request $request): array

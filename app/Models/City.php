@@ -6,6 +6,7 @@ use Astrotomic\Translatable\Contracts\Translatable as TranslatableContract;
 use Astrotomic\Translatable\Translatable;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -20,7 +21,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * country by eager-loading `governorate.country` -- doing so also makes the
  * required eager loads explicit at the call site.
  *
- * @property-read \Illuminate\Database\Eloquent\Collection<int, CityTranslation> $translations
+ * @property-read Collection<int, CityTranslation> $translations
  * @property int $id
  * @property int $governorate_id
  * @property string|null $code

@@ -19,8 +19,9 @@ final class ReconcilePayments extends Command
     {
         $limit = (string) $this->option('limit');
         $id = $this->option('payment');
-        if (!ctype_digit($limit) || (int) $limit < 1 || (int) $limit > 100 || ($id !== null && (!ctype_digit((string) $id) || (int) $id < 1))) {
+        if (! ctype_digit($limit) || (int) $limit < 1 || (int) $limit > 100 || ($id !== null && (! ctype_digit((string) $id) || (int) $id < 1))) {
             $this->error('INVALID_OPTIONS');
+
             return self::INVALID;
         }
         $query = Payment::query()->where(function (Builder $query): void {
@@ -43,6 +44,7 @@ final class ReconcilePayments extends Command
                 Payment::query()->whereKey($payment->id)->update(['updated_at' => now()]);
             }
         }
+
         return $failed ? self::FAILURE : self::SUCCESS;
     }
 }

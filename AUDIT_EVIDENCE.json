@@ -16,86 +16,85 @@
     "sqlite": {
       "tool": "phpunit",
       "result": "passed",
-      "tests": 222,
-      "passed": 216,
-      "assertions": 2762,
-      "duration_ms": 23623,
+      "tests": 244,
+      "passed": 238,
+      "assertions": 3014,
+      "duration_ms": 29803,
       "skipped": 6
     },
     "mysql_with_redis": {
       "tool": "phpunit",
       "result": "passed",
-      "tests": 222,
-      "passed": 222,
-      "assertions": 2795,
-      "duration_ms": 51782
-    },
-    "final_expanded_translation_parity": {
-      "tool": "phpunit",
-      "result": "passed",
-      "tests": 2,
-      "passed": 2,
-      "assertions": 728,
-      "duration_ms": 161
+      "tests": 244,
+      "passed": 244,
+      "assertions": 3047,
+      "duration_ms": 61851
     },
     "socket": {
-      "tests": 7,
-      "passed": 7,
+      "tests": 8,
+      "passed": 8,
       "failed": 0,
-      "real_redis": true
+      "real_redis": true,
+      "multi_node_shutdown_and_failover": true
     }
   },
   "translation": {
     "application_files_per_locale": 11,
-    "application_keys_per_locale": 237,
+    "application_keys_per_locale": 239,
     "package_override_files_per_locale": 1,
     "package_override_keys_per_locale": 2,
     "total_files_per_locale": 12,
-    "total_keys_per_locale": 239,
+    "total_keys_per_locale": 241,
     "missing_en": [],
     "missing_ar": [],
     "placeholder_mismatches": 0,
-    "unused_detected": [
-      "otp.verified"
-    ],
-    "unused_detection_limit": "Framework validation, enum/error catalogs and dynamic resource messages are deliberately retained; no exhaustive dynamic reachability claim.",
+    "unused_detected": [],
+    "unused_detection_limit": "Removed the unused otp.verified entry; no unused literal domain keys remain detected. Framework and dynamic catalogs are intentionally retained; exhaustive dynamic reachability is not claimed.",
     "human_facing_unlocalized_findings": []
   },
   "routes": {
-    "total": 81,
-    "api": 74,
+    "total": 87,
+    "api": 80,
     "duplicate_names": [],
     "duplicate_method_uri_pairs": []
   },
   "php_syntax": {
-    "files": 268,
+    "files": 288,
     "errors": []
   },
   "migrations_and_cache": [
     {
       "database": "sqlite",
-      "command": "artisan migrate:fresh --seed --force --no-interaction",
+      "command": "migrate:fresh --seed --force --no-interaction",
       "exit_code": 0
     },
     {
       "database": "sqlite",
-      "command": "artisan db:seed --force --no-interaction",
+      "command": "db:seed --force --no-interaction",
       "exit_code": 0
     },
     {
       "database": "mysql",
-      "command": "artisan migrate:fresh --seed --force --no-interaction",
+      "command": "migrate:fresh --seed --force --no-interaction",
       "exit_code": 0
     },
     {
       "database": "mysql",
-      "command": "artisan db:seed --force --no-interaction",
+      "command": "db:seed --force --no-interaction",
       "exit_code": 0
     },
     {
-      "database": "sqlite",
-      "command": "artisan optimize --no-interaction",
+      "command": "optimize",
       "exit_code": 0
+    },
+    {
+      "command": "isolated MySQL dump and restore",
+      "exit_code": 0,
+      "matching_counts_and_triggers": {
+        "metrial_quality": "countries\t245\ncity_translations\t90\nmigrations\t17\n2",
+        "metrial_quality_restore": "countries\t245\ncity_translations\t90\nmigrations\t17\n2"
+      },
+      "boundary": "Seeded audit data and schema only; no production dataset tested."
     }
   ],
   "dependency_audits": {
@@ -126,7 +125,9 @@
     "vite_build": "passed, optional fontaine warning",
     "docker_compose_config": "passed",
     "concurrently_override_smoke": "passed",
-    "phpstan_larastan": "not installed; not run"
+    "phpstan_larastan": "passed at level 5, no ignored-error baseline",
+    "git_diff_check": "passed",
+    "github_actions": "workflow added, YAML parsed, constituent commands executed locally; hosted workflow not run"
   },
   "audit_matrix": [
     {
@@ -145,7 +146,7 @@
       "severity": "HIGH",
       "final_status": "PASS",
       "problem": "Actor route comments did not implement the missing workflows; chained parameter constraints overwrote earlier parameters.",
-      "correction": "Added actor-specific workflows; corrected multi-parameter numeric constraints; reviewed all 74 API routes.",
+      "correction": "Actor-specific workflows and device registration/removal; reviewed all 80 API routes.",
       "files": "routes; app/Http/Middleware",
       "evidence": "ActorGuardTest; AccountStatusGuardTest; RbacTest; route inventory"
     },
@@ -285,9 +286,9 @@
       "severity": "CRITICAL",
       "final_status": "PARTIAL",
       "problem": "No partial/full refund accounting or retry safety.",
-      "correction": "Serialized reservation, wallet debit before provider call, stable retry key, compensating release on failure, callback settlement; aged ambiguity stops retries.",
-      "files": "app/Actions/Payments/RefundPayment.php",
-      "evidence": "PaymentFlowTest; ConcurrencyTest; operational reconciliation still manual"
+      "correction": "Serialized reservations and callback settlement remain; added bounded scheduled provider-read reconciliation for aged/ambiguous payments and refunds. Absent or conflicting provider evidence remains unresolved; no new charge/refund is created.",
+      "files": "app/Actions/Payments/ReconcilePayment.php; app/Console/Commands/ReconcilePayments.php; app/Contracts/Payments/ReconcilesPayments.php; app/Services/Payments/StripeGateway.php",
+      "evidence": "PaymentFlowTest; ReconciliationTest; ConcurrencyTest; live merchant drill pending"
     },
     {
       "requirement": "Multiple provider support",
@@ -325,9 +326,9 @@
       "severity": "MEDIUM",
       "final_status": "PARTIAL",
       "problem": "No delivered domain notification channels.",
-      "correction": "Twilio OTP SMS implemented and HTTP-fake tested. General email/FCM channels are absent; do not advertise their delivery.",
-      "files": "app/Services/Auth/TwilioSms.php; config/mail.php; config/sms.php",
-      "evidence": "StripeGatewayTest; AuthenticationFlowTest; actual SMS delivery pending"
+      "correction": "Twilio OTP plus durable email and FCM delivery implemented. Email only targets verified addresses. FCM uses Google Auth OAuth, encrypted owned device tokens, authoritative token invalidation and bounded retries. Defaults remain disabled.",
+      "files": "app/Services/Notifications; app/Jobs/DeliverNotificationChannel.php; app/Mail; app/Http/Controllers/Shared/DeviceTokenController.php",
+      "evidence": "DeliveryChannelsTest; NotificationFlowTest; provider HTTP/Mail fakes; actual delivery NOT RUNTIME VERIFIED"
     },
     {
       "requirement": "Redis / queues",
@@ -345,9 +346,9 @@
       "severity": "CRITICAL",
       "final_status": "PASS",
       "problem": "Unauthenticated arbitrary room joins and client-controlled global events.",
-      "correction": "Short-lived signed credentials, own-room-only joins, expiry disconnect, allowlisted server relay, Redis adapter and local emission to avoid duplicate fan-out.",
-      "files": "docker/socketio/auth.cjs; docker/socketio/socket.io.config.cjs",
-      "evidence": "Seven Node tests including live Redis/Socket.IO isolation and expiry"
+      "correction": "Signed own-user credentials, expiry, allowlisted relay and two-node tests. Fixed global shutdown disconnect: node termination now disconnects only its local sockets.",
+      "files": "docker/socketio/socket.io.config.cjs; docker/socketio/integration.test.cjs",
+      "evidence": "Eight Node tests including two nodes, duplicate suppression and surviving-node delivery"
     },
     {
       "requirement": "Audit / logging / mass assignment",
@@ -385,9 +386,9 @@
       "severity": "HIGH",
       "final_status": "PARTIAL",
       "problem": "Debug forced on, DB/Redis publicly bound, broad PHP execution and absent scheduler.",
-      "correction": "Environment-driven debug (forced off in production app config), loopback data ports, front-controller-only PHP, non-root worker/sidecar, scheduler.",
-      "files": "docker-compose.yml; docker; config/app.php; .env.example",
-      "evidence": "Compose validation + code review; full deployment/TLS/backup NOT RUNTIME VERIFIED"
+      "correction": "Added app:readiness for production configuration, secrets presence, connectivity, failed jobs and stale outbox/payment/refund work. Current local settings correctly fail. Local MySQL dump/restore drill passed.",
+      "files": "app/Services/Operations/ReadinessChecks.php; app/Console/Commands/CheckReadiness.php; docker-compose.yml",
+      "evidence": "ReadinessTest; actual configuration-only check; isolated restore drill; deployed TLS/environment pending"
     },
     {
       "requirement": "Tests / formatting / syntax",
@@ -395,19 +396,19 @@
       "severity": "HIGH",
       "final_status": "PASS",
       "problem": "Baseline had 4 failures and 20 errors (including root-owned logging and invalid test imports).",
-      "correction": "Portable stderr logging/cache, repaired factories/imports, substantial behavior and concurrency regressions; Pint and syntax checks.",
-      "files": "tests; phpunit.xml",
-      "evidence": "222 MySQL tests passed; 216 SQLite passed with 6 explained skips; 268 PHP syntax checks"
+      "correction": "Expanded suite to 244 Laravel tests plus eight Node cases; type analysis, PHP lint and formatting verified. CI workflow added.",
+      "files": "tests; docker/socketio/*.test.cjs; .github/workflows/quality.yml",
+      "evidence": "244 MySQL passed; 238 SQLite passed / six infrastructure skips; 288 PHP files linted"
     },
     {
       "requirement": "Static type analysis",
       "initial_status": "NOT IMPLEMENTED",
       "severity": "MEDIUM",
-      "final_status": "NOT IMPLEMENTED",
+      "final_status": "PASS",
       "problem": "PHPStan/Larastan is not installed or configured.",
-      "correction": "Reported honestly; runtime tests, lint and formatting are separate checks.",
-      "files": "composer.json",
-      "evidence": "NOT RUN: no configured analyzer"
+      "correction": "Installed Larastan/PHPStan; resolved 65 initial diagnostics with accurate model casts, resource declarations, callback types and related corrections. Level 5 passes without an ignored-error baseline.",
+      "files": "composer.json; phpstan.neon; app/Models; app/Http/Resources",
+      "evidence": "VERIFIED BY STATIC ANALYSIS: zero errors"
     },
     {
       "requirement": "Dependency security / build",
@@ -425,9 +426,9 @@
       "severity": "MEDIUM",
       "final_status": "PARTIAL",
       "problem": "No load or production query baseline.",
-      "correction": "Eager-loaded translations, paginated financial/category APIs, relevant compound indexes, bounded tree depth; optimize succeeded.",
-      "files": "app/Http/Controllers; app/Models; database/migrations",
-      "evidence": "STATIC CODE REVIEW + optimize; production load/large-data query plans pending"
+      "correction": "Query-budget regressions plus 1,000-category/2,000-translation MySQL benchmark; 40 sequential kernel requests, maximum three queries, p95 37.19 ms on this host.",
+      "files": "tests/Feature/Performance/QueryBudgetTest.php",
+      "evidence": "VERIFIED BY TEST / LOCAL MEASUREMENT; concurrent production load pending"
     },
     {
       "requirement": "Dead code / placeholders / documentation",
@@ -437,28 +438,28 @@
       "problem": "Old unauthenticated realtime demo, duplicate JS config, unused controller/config, misleading README.",
       "correction": "Removed obsolete surfaces and updated setup/provider/realtime documentation; no unfinished business TODO found.",
       "files": "README.md; routes/web.php; removed demo files",
-      "evidence": "Source scan + route inventory; one unused OTP translation key disclosed"
+      "evidence": "Source scan and route inventory; removed unused otp.verified translation in both languages."
     }
   ],
   "scores": [
     {
       "category": "Architecture",
-      "score": 9,
+      "score": 9.5,
       "rationale": "Focused Laravel monolith and explicit external contracts."
     },
     {
       "category": "Laravel Best Practices",
-      "score": 9,
+      "score": 9.5,
       "rationale": "FormRequests, Resources, Actions, queue jobs, bindings and framework migrations."
     },
     {
       "category": "Code Quality",
-      "score": 8.5,
-      "rationale": "Runtime checks are strong; static type analysis and a second independent review remain."
+      "score": 9,
+      "rationale": "Level-5 static analysis passes with no ignored-error baseline; higher levels and independent review remain potential improvements."
     },
     {
       "category": "SOLID",
-      "score": 9,
+      "score": 9.5,
       "rationale": "Provider adapters and focused use cases; no unnecessary repository layer."
     },
     {
@@ -488,69 +489,73 @@
     },
     {
       "category": "Localization",
-      "score": 9,
+      "score": 9.5,
       "rationale": "Recursive application and package key/placeholder parity; locale resolution tested."
     },
     {
       "category": "Arabic Coverage",
-      "score": 8.5,
-      "rationale": "Complete key parity; native-speaker editorial review of all prose and future channels remains."
+      "score": 9,
+      "rationale": "Application, validation, email and push content have parity and rendering coverage; independent editorial review is still useful."
     },
     {
       "category": "English Coverage",
-      "score": 9,
+      "score": 9.5,
       "rationale": "All shipped domain messages and validation catalog available."
     },
     {
       "category": "Wallet Safety",
-      "score": 9,
+      "score": 9.5,
       "rationale": "Immutable integer ledger, SQL constraints, row locks and real concurrency tests."
     },
     {
       "category": "Payment Safety",
-      "score": 8,
-      "rationale": "Stripe sandbox/live merchant validation and operational reconciliation drill remain."
+      "score": 9,
+      "rationale": "Provider-read reconciliation and refund recovery pass locally; real merchant settlement and operational drills remain unverified."
     },
     {
       "category": "Concurrency",
-      "score": 9,
+      "score": 9.5,
       "rationale": "Five independent-process MySQL scenarios passed; no claim of exhaustive race proof."
     },
     {
       "category": "Idempotency",
-      "score": 9,
+      "score": 9.5,
       "rationale": "Scoped hashes/unique keys and stable provider keys; aged ambiguous retries fail closed."
     },
     {
       "category": "Security",
-      "score": 8.5,
-      "rationale": "Deployment hardening verification, secret/history review and independent penetration testing remain."
+      "score": 9,
+      "rationale": "Boundary/security regressions and recognized-secret scan pass; deployed security and independent penetration testing are unverified."
     },
     {
       "category": "Realtime Security",
-      "score": 8.5,
-      "rationale": "Room/signature/expiry tests pass; TLS and multi-node load/failover not exercised; revocation has short expiry window."
+      "score": 9,
+      "rationale": "Two-node isolation/failover tests pass; deployed TLS and full-scale resilience are unverified. Existing credentials expire within 120 seconds after HTTP revocation."
     },
     {
       "category": "Testing",
-      "score": 8.5,
-      "rationale": "222 MySQL cases plus seven socket cases; no static analyzer, coverage metric or live provider tests."
+      "score": 9,
+      "rationale": "244 MySQL and eight Node tests, static analysis and CI definition; live provider and hosted CI execution remain unverified."
     },
     {
       "category": "Performance",
-      "score": 7,
-      "rationale": "No representative load, production-scale query plans or queue/failover benchmark."
+      "score": 8.5,
+      "rationale": "Local query budgets and sequential benchmark pass; production-concurrent load, latency SLO and large-data query plans remain unverified."
     },
     {
       "category": "Production Readiness",
-      "score": 7.5,
-      "rationale": "Provider commissioning, deployment/secret/backup monitoring and reconciliation operations are release conditions."
+      "score": 8,
+      "rationale": "Readiness checker correctly fails local defaults. Actual provider configuration, HTTPS, operational supervision and production restore rehearsal remain necessary."
     }
   ],
   "changed_files": [
     {
       "path": ".env.example",
       "change": "modified"
+    },
+    {
+      "path": ".github/workflows/quality.yml",
+      "change": "added"
     },
     {
       "path": ".gitignore",
@@ -605,11 +610,19 @@
       "change": "modified"
     },
     {
+      "path": "app/Actions/Notifications/RegisterDeviceToken.php",
+      "change": "added"
+    },
+    {
       "path": "app/Actions/Payments/CreatePayment.php",
       "change": "added"
     },
     {
       "path": "app/Actions/Payments/ProcessWebhook.php",
+      "change": "added"
+    },
+    {
+      "path": "app/Actions/Payments/ReconcilePayment.php",
       "change": "added"
     },
     {
@@ -629,7 +642,19 @@
       "change": "added"
     },
     {
+      "path": "app/Console/Commands/CheckReadiness.php",
+      "change": "added"
+    },
+    {
+      "path": "app/Console/Commands/ReconcilePayments.php",
+      "change": "added"
+    },
+    {
       "path": "app/Contracts/Payments/PaymentGatewayInterface.php",
+      "change": "added"
+    },
+    {
+      "path": "app/Contracts/Payments/ReconcilesPayments.php",
       "change": "added"
     },
     {
@@ -713,6 +738,10 @@
       "change": "added"
     },
     {
+      "path": "app/Http/Controllers/Shared/DeviceTokenController.php",
+      "change": "added"
+    },
+    {
       "path": "app/Http/Controllers/Shared/NotificationController.php",
       "change": "added"
     },
@@ -793,6 +822,10 @@
       "change": "added"
     },
     {
+      "path": "app/Http/Requests/Notifications/DeviceTokenRequest.php",
+      "change": "added"
+    },
+    {
       "path": "app/Http/Requests/Profile/UpdateProfileRequest.php",
       "change": "added"
     },
@@ -825,7 +858,15 @@
       "change": "added"
     },
     {
+      "path": "app/Jobs/DeliverNotificationChannel.php",
+      "change": "added"
+    },
+    {
       "path": "app/Jobs/PublishNotification.php",
+      "change": "added"
+    },
+    {
+      "path": "app/Mail/AccountNotificationMail.php",
       "change": "added"
     },
     {
@@ -841,8 +882,24 @@
       "change": "added"
     },
     {
+      "path": "app/Models/City.php",
+      "change": "modified"
+    },
+    {
+      "path": "app/Models/Country.php",
+      "change": "modified"
+    },
+    {
+      "path": "app/Models/DeviceToken.php",
+      "change": "added"
+    },
+    {
       "path": "app/Models/Governorate.php",
       "change": "modified"
+    },
+    {
+      "path": "app/Models/NotificationDelivery.php",
+      "change": "added"
     },
     {
       "path": "app/Models/OtpChallenge.php",
@@ -905,7 +962,19 @@
       "change": "added"
     },
     {
+      "path": "app/Services/Notifications/DeliverNotification.php",
+      "change": "added"
+    },
+    {
+      "path": "app/Services/Notifications/FcmClient.php",
+      "change": "added"
+    },
+    {
       "path": "app/Services/Notifications/NotificationOutbox.php",
+      "change": "added"
+    },
+    {
+      "path": "app/Services/Operations/ReadinessChecks.php",
       "change": "added"
     },
     {
@@ -951,6 +1020,14 @@
     {
       "path": "config/app.php",
       "change": "modified"
+    },
+    {
+      "path": "config/mail.php",
+      "change": "modified"
+    },
+    {
+      "path": "config/notifications.php",
+      "change": "added"
     },
     {
       "path": "config/otp.php",
@@ -1014,6 +1091,10 @@
     },
     {
       "path": "database/migrations/2026_10_07_063320_backfill_stable_city_seed_codes.php",
+      "change": "added"
+    },
+    {
+      "path": "database/migrations/2026_10_07_071625_create_notification_delivery_tables.php",
       "change": "added"
     },
     {
@@ -1145,8 +1226,20 @@
       "change": "modified"
     },
     {
+      "path": "phpstan.neon",
+      "change": "added"
+    },
+    {
       "path": "phpunit.xml",
       "change": "modified"
+    },
+    {
+      "path": "resources/views/mail/account-notification-text.blade.php",
+      "change": "added"
+    },
+    {
+      "path": "resources/views/mail/account-notification.blade.php",
+      "change": "added"
     },
     {
       "path": "routes/admin.php",
@@ -1205,6 +1298,10 @@
       "change": "added"
     },
     {
+      "path": "tests/Feature/Finance/ReconciliationTest.php",
+      "change": "added"
+    },
+    {
       "path": "tests/Feature/Finance/WalletSafetyTest.php",
       "change": "added"
     },
@@ -1221,11 +1318,19 @@
       "change": "added"
     },
     {
+      "path": "tests/Feature/Notifications/DeliveryChannelsTest.php",
+      "change": "added"
+    },
+    {
       "path": "tests/Feature/Notifications/NotificationFlowTest.php",
       "change": "added"
     },
     {
       "path": "tests/Feature/Notifications/RedisQueueIntegrationTest.php",
+      "change": "added"
+    },
+    {
+      "path": "tests/Feature/Performance/QueryBudgetTest.php",
       "change": "added"
     },
     {
@@ -1238,6 +1343,10 @@
     },
     {
       "path": "tests/Feature/Security/AuditRegressionTest.php",
+      "change": "added"
+    },
+    {
+      "path": "tests/Feature/Security/ReadinessTest.php",
       "change": "added"
     },
     {
@@ -1279,12 +1388,95 @@
   ],
   "generated_setup_files": "Laravel Boost also generated .agents/.claude agent skills and MCP configuration; vendor/node_modules/build outputs are excluded from the application change manifest.",
   "boundaries": [
-    "No live Stripe or Twilio request was made. Provider HTTP was faked in tests.",
-    "FCM and general email notification delivery are not implemented.",
-    "No address domain exists; reviewed as conditional scope.",
-    "Production infrastructure, TLS, backups and disaster recovery were not tested.",
-    "No Git metadata was available, so repository history and committed-secret claims cannot be verified.",
-    "Only isolated audit MySQL/Redis and disposable SQLite databases were migrated/reset.",
-    "Original user .env and application data were not migrated/reset."
-  ]
+    "No live Stripe, Twilio, SMTP or FCM message/transaction was sent. Provider HTTP and mail delivery were faked.",
+    "Email and FCM implementation now exists; live delivery is still unverified.",
+    "Addresses remain absent and were reviewed as conditional scope.",
+    "Local MySQL backup/restore was verified; no production dataset, deployed TLS or production load was verified.",
+    "Git metadata became available during follow-up. Current tracked files were pattern-scanned and .env is untracked; no exhaustive history/secret audit is claimed.",
+    "Only isolated quality MySQL/Redis and disposable SQLite databases were reset. Existing .env and user application data were preserved.",
+    "No deployment or Git commit was performed by this agent; hosted CI execution has not occurred."
+  ],
+  "previous_audit_results": {
+    "sqlite": {
+      "tool": "phpunit",
+      "result": "passed",
+      "tests": 222,
+      "passed": 216,
+      "assertions": 2762,
+      "duration_ms": 23623,
+      "skipped": 6
+    },
+    "mysql_with_redis": {
+      "tool": "phpunit",
+      "result": "passed",
+      "tests": 222,
+      "passed": 222,
+      "assertions": 2795,
+      "duration_ms": 51782
+    },
+    "final_expanded_translation_parity": {
+      "tool": "phpunit",
+      "result": "passed",
+      "tests": 2,
+      "passed": 2,
+      "assertions": 728,
+      "duration_ms": 161
+    },
+    "socket": {
+      "tests": 7,
+      "passed": 7,
+      "failed": 0,
+      "real_redis": true
+    }
+  },
+  "static_analysis": {
+    "tool": "Larastan 3.12.3 / PHPStan 2.3.0",
+    "level": 5,
+    "paths": [
+      "app",
+      "database",
+      "routes"
+    ],
+    "errors": 0,
+    "ignored_error_baseline": false
+  },
+  "performance_measurement": {
+    "database": "mysql",
+    "categories": 1000,
+    "translations": 2000,
+    "requests": 40,
+    "maximum_queries": 3,
+    "p50_ms": 26.83,
+    "p95_ms": 37.19,
+    "max_ms": 37.89,
+    "boundary": "Sequential Laravel HTTP-kernel requests on this host; excludes TLS, internet latency and concurrent production load."
+  },
+  "production_configuration_readiness": {
+    "ready": false,
+    "checks": {
+      "production_environment": false,
+      "debug_disabled": false,
+      "https_url": false,
+      "application_key": true,
+      "socket_secret": false,
+      "mysql_database": true,
+      "database_credentials": false,
+      "redis_queue": true,
+      "redis_cache": true,
+      "queue_retry_window": true,
+      "payments_configured": false,
+      "sms_configured": false,
+      "configuration_cached": false,
+      "routes_cached": false,
+      "runtime_directories_writable": true
+    },
+    "external_provider_delivery_verified": false
+  },
+  "secret_pattern_scan": {
+    "scope": "Current tracked working-tree files; recognizable credential patterns only, not an exhaustive secret/history audit",
+    "files_checked": 2612,
+    "finding_paths": [],
+    "tracked_dotenv": false
+  },
+  "score_note": "The user requested all categories at 10/10. Scores reflect evidence and were not set to 10 by request. Production and live-service verification are unavailable in the current local environment."
 }

@@ -18,7 +18,7 @@ final class ReconcilePayment
     public function execute(Payment $payment): array
     {
         $gateway = $this->gateways->get($payment->provider);
-        if (!$gateway instanceof ReconcilesPayments) {
+        if (! $gateway instanceof ReconcilesPayments) {
             throw new DomainException(ErrorCode::RECONCILIATION_REQUIRED);
         }
         $settled = 0;
@@ -42,6 +42,7 @@ final class ReconcilePayment
                 $unresolved++;
             }
         }
+
         return ['payment_id' => $payment->id, 'settled' => $settled, 'unresolved' => $unresolved];
     }
 }
