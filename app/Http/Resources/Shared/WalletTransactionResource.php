@@ -5,7 +5,8 @@ namespace App\Http\Resources\Shared;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
-class WalletTransactionResource extends JsonResource
+/** @mixin \App\Models\WalletTransaction */
+final class WalletTransactionResource extends JsonResource
 {
     public function toArray(Request $request): array
     {

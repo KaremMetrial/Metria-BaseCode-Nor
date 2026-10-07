@@ -20,6 +20,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * country by eager-loading `governorate.country` -- doing so also makes the
  * required eager loads explicit at the call site.
  *
+ * @property-read \Illuminate\Database\Eloquent\Collection<int, CityTranslation> $translations
  * @property int $id
  * @property int $governorate_id
  * @property string|null $code

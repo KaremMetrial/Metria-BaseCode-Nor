@@ -10,6 +10,11 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
+/**
+ * @property-read string $name
+ * @property-read string|null $description
+ * @property-read \Illuminate\Database\Eloquent\Collection<int, CategoryTranslation> $translations
+ */
 #[Fillable(['parent_id', 'is_active', 'sort_order'])]
 class Category extends Model implements TranslatableContract
 {

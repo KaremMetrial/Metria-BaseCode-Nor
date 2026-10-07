@@ -10,7 +10,7 @@ class UserRoleRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()?->isAdmin() && $this->user()?->hasRole(RoleRegistry::SUPER_ADMIN);
+        return $this->user()?->isAdmin() && $this->user()->hasRole(RoleRegistry::SUPER_ADMIN);
     }
 
     public function rules(): array

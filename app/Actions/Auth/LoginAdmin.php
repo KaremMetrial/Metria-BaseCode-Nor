@@ -20,7 +20,7 @@ final class LoginAdmin
     {
         $user = User::query()->whereRaw('LOWER(email) = ?', [mb_strtolower($email)])->first();
         // A fixed dummy hash equalizes the expensive password check for unknown accounts.
-        $hash = $user?->password ?? '$2y$12$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2uheWG/igi.';
+        $hash = $user->password ?? '$2y$12$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2uheWG/igi.';
         $valid = Hash::check($password, $hash);
         if (! $valid || ! $user || $user->type !== UserType::ADMIN || ! $user->isActive()) {
             $this->audit->record(new AuditEntry(AuditAction::USER_LOGIN_FAILED));

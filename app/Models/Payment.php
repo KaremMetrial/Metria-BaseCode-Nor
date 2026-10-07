@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Enums\PaymentStatus;
 use Illuminate\Database\Eloquent\Model;
 
+/** @property PaymentStatus $status */
 class Payment extends Model
 {
     protected $hidden = ['client_secret', 'request_hash', 'idempotency_key'];

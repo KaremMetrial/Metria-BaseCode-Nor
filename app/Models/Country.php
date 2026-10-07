@@ -20,6 +20,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * displayed?". It does not validate phone numbers -- that is libphonenumber's
  * job, reached through PhoneNumberServiceInterface.
  *
+ * @property-read \Illuminate\Database\Eloquent\Collection<int, CountryTranslation> $translations
  * @property int $id
  * @property string $iso2
  * @property string|null $iso3

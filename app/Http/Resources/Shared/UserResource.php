@@ -5,7 +5,8 @@ namespace App\Http\Resources\Shared;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
-class UserResource extends JsonResource
+/** @mixin \App\Models\User */
+final class UserResource extends JsonResource
 {
     public function toArray(Request $request): array
     {

@@ -16,6 +16,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * A first-level administrative division (governorate, state, province, emirate
  * or region -- recorded in `type`).
  *
+ * @property-read \Illuminate\Database\Eloquent\Collection<int, GovernorateTranslation> $translations
  * @property int $id
  * @property int $country_id
  * @property string|null $code

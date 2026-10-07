@@ -16,6 +16,7 @@ final class Logout
     public function execute(User $user): void
     {
         DB::transaction(function () use ($user): void {
+            /** @var \Laravel\Sanctum\Contracts\HasAbilities|null $token */
             $token = $user->currentAccessToken();
             if ($token instanceof PersonalAccessToken) {
                 $token->delete();
