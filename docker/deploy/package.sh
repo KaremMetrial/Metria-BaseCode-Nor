@@ -6,7 +6,7 @@ trap 'rm -rf "$work"' EXIT
 cd "$repo"
 [[ -f public/build/manifest.json ]] || { echo 'Run npm ci and npm run build first' >&2; exit 1; }
 # Allowlist application code; never archive the working tree wholesale.
-tar --exclude=bootstrap/cache --exclude=public/storage --exclude=public/hot --exclude='*.sqlite*' --exclude='.env*' -cf - app bootstrap config database public resources routes artisan composer.json composer.lock | tar -xf - -C "$work"
+tar --exclude=bootstrap/cache --exclude=public/storage --exclude=public/hot --exclude='*.sqlite*' --exclude='.env*' -cf - app bootstrap config database lang public resources routes artisan composer.json composer.lock | tar -xf - -C "$work"
 mkdir -p "$work/bootstrap/cache" "$work/docker/socketio/public"
 cp docker/socketio/{app.js,auth.cjs,env.cjs,socket.io.config.cjs,package.json,package-lock.json} "$work/docker/socketio/"
 composer install --working-dir="$work" --no-dev --no-scripts --classmap-authoritative --prefer-dist --no-interaction --no-progress

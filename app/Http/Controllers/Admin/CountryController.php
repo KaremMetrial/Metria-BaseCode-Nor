@@ -32,6 +32,11 @@ use Illuminate\Http\JsonResponse;
  */
 final class CountryController extends Controller
 {
+    /**
+     * List all countries.
+     *
+     * Includes inactive records and all translations. This list is not paginated.
+     */
     public function index(): JsonResponse
     {
         $countries = Country::query()
@@ -42,11 +47,21 @@ final class CountryController extends Controller
         return ApiResponse::success(AdminCountryResource::collection($countries));
     }
 
+    /**
+     * Get a country for editing.
+     *
+     * Returns administrative fields and all translations, including inactive records.
+     */
     public function show(Country $country): JsonResponse
     {
         return ApiResponse::success(new AdminCountryResource($country->load('translations')));
     }
 
+    /**
+     * Create a country.
+     *
+     * Requires an English name in translations.en. Arabic is optional; every supplied locale object must include its name. Only en and ar translation keys are accepted.
+     */
     public function store(StoreCountryRequest $request, CreateCountry $action): JsonResponse
     {
         $country = $action->execute($request->validated());
@@ -58,6 +73,11 @@ final class CountryController extends Controller
         );
     }
 
+    /**
+     * Update a country.
+     *
+     * Partial update: omit unchanged fields. When providing a locale object, include its name. Parent changes must preserve the location hierarchy.
+     */
     public function update(
         UpdateCountryRequest $request,
         Country $country,
@@ -71,6 +91,11 @@ final class CountryController extends Controller
         );
     }
 
+    /**
+     * Delete a country.
+     *
+     * Returns a null data payload on success. Referenced locations cannot be deleted and return 409 RESOURCE_IN_USE.
+     */
     public function destroy(DestroyCountryRequest $request, Country $country, DeleteCountry $action): JsonResponse
     {
         $action->execute($country);

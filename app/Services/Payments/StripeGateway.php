@@ -6,6 +6,7 @@ use App\Contracts\Payments\PaymentGatewayInterface;
 use App\Contracts\Payments\ReconcilesPayments;
 use App\Enums\ErrorCode;
 use App\Exceptions\DomainException;
+use App\Exceptions\RefundRejectedException;
 use App\Models\Payment;
 use App\Models\PaymentRefund;
 use Illuminate\Support\Facades\Http;
@@ -43,14 +44,20 @@ final class StripeGateway implements PaymentGatewayInterface, ReconcilesPayments
         }
         try {
             $response = Http::asForm()->withToken($this->settings['secret'])->withHeaders(['Idempotency-Key' => $key])->connectTimeout(3)->timeout(15)->post('https://api.stripe.com/v1/'.$path, $payload);
-            if (! $response->successful() || ! is_array($response->json())) {
-                throw new DomainException(ErrorCode::PROVIDER_UNAVAILABLE);
-            }
-
-            return $response->json();
         } catch (\Throwable) {
             throw new DomainException(ErrorCode::PROVIDER_UNAVAILABLE);
         }
+        if ($path === 'refunds' && $response->status() === 400
+            && $response->json('error.type') === 'invalid_request_error'
+            && $response->json('error.code') !== 'idempotency_key_in_use'
+            && strtolower($response->header('Stripe-Should-Retry')) !== 'true') {
+            throw new RefundRejectedException('REFUND_REJECTED');
+        }
+        if (! $response->successful() || ! is_array($response->json())) {
+            throw new DomainException(ErrorCode::PROVIDER_UNAVAILABLE);
+        }
+
+        return $response->json();
     }
 
     public function verifyWebhook(string $body, array $headers): array

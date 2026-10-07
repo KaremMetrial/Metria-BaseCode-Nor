@@ -20,7 +20,7 @@ function fixture(t, failure = '') {
   fs.symlinkSync(path.join(root, `releases/${previousId}`), path.join(root, 'current'));
   for (const file of ['.env', 'socket.env', 'mysql-backup.cnf']) fs.writeFileSync(path.join(root, 'shared', file), 'fixture');
   fs.writeFileSync(path.join(root, 'shared/deploy.conf'), `PHP_BIN=${root}/bin/php\nMYSQLDUMP_BIN=${root}/bin/mysqldump\nDB_DATABASE=fixture\nAPP_HEALTH_URL=https://app.invalid/up\nSOCKET_HEALTH_URL=https://socket.invalid/health\n`);
-  fs.writeFileSync(path.join(root, 'bin/php'), `#!/usr/bin/env bash\nprintf '%s\\n' "$2" >> "$TEST_ROOT/calls"\nif [[ "$2" == "$FAILURE" ]]; then exit 42; fi\n`, { mode: 0o755 });
+  fs.writeFileSync(path.join(root, 'bin/php'), `#!/usr/bin/env bash\nprintf '%s\\n' "$2" >> "$TEST_ROOT/calls"\nprintf '%s\\n' "\${*:2}" >> "$TEST_ROOT/commands"\nif [[ "$2" == "$FAILURE" ]]; then exit 42; fi\nif [[ "$FAILURE" == connectivity && "$2" == app:readiness && "$*" == *--deployment* ]]; then exit 42; fi\nif [[ "$FAILURE" == backlog && "$2" == app:readiness && "$*" != *--deployment* && "$*" != *--configuration-only* ]]; then exit 42; fi\n`, { mode: 0o755 });
   fs.writeFileSync(path.join(root, 'bin/mysqldump'), '#!/usr/bin/env bash\necho backup >> "$TEST_ROOT/calls"\n[[ "$FAILURE" != backup ]] || exit 42\necho "CREATE TABLE fixture(id INT);"\n', { mode: 0o755 });
   fs.writeFileSync(path.join(root, 'bin/curl'), '#!/usr/bin/env bash\n[[ "$FAILURE" != health ]]\n', { mode: 0o755 });
   const archive = path.join(root, `incoming/${releaseId}/release.tar.gz`);
@@ -42,9 +42,12 @@ test('deployment backs up before migration, activates code and preserves shared 
   assert.equal(fs.readlinkSync(path.join(root, `releases/${releaseId}/storage`)), path.join(root, 'shared/storage'));
   assert.match(gunzipSync(fs.readFileSync(path.join(root, `backups/${releaseId}.sql.gz`))).toString(), /CREATE TABLE fixture/);
   assert.ok(calls().indexOf('backup') < calls().indexOf('migrate'));
+  assert.ok(calls().indexOf('migrate') < calls().indexOf('db:seed'));
+  assert.ok(calls().indexOf('db:seed') < calls().indexOf('up'));
+  assert.match(fs.readFileSync(path.join(root, 'commands'), 'utf8'), /db:seed --class=DatabaseSeeder --force/);
   assert.ok(fs.existsSync(path.join(root, 'shared/socket-tmp/restart.txt')));
 });
-for (const failure of ['backup', 'migrate']) test(`${failure} failure leaves old release selected and maintenance enabled`, t => {
+for (const failure of ['backup', 'migrate', 'db:seed']) test(`${failure} failure leaves old release selected and maintenance enabled`, t => {
   const { root, run, calls } = fixture(t, failure);
   assert.notEqual(run().status, 0);
   assert.equal(fs.readlinkSync(path.join(root, 'current')), path.join(root, `releases/${previousId}`));
@@ -65,7 +68,23 @@ test('manual rollback activates existing code without reversing the database', t
   assert.equal(fs.readlinkSync(path.join(root, 'current')), path.join(root, `releases/${previousId}`));
   assert.ok(!calls().includes('backup'));
   assert.ok(!calls().includes('migrate'));
+  assert.ok(!calls().includes('db:seed'));
   assert.ok(!calls().includes('migrate:rollback'));
+});
+test('connection failure is detected before maintenance and backup', t => {
+  const { root, run, calls } = fixture(t, 'connectivity');
+  assert.notEqual(run().status, 0);
+  assert.ok(!calls().includes('down'));
+  assert.ok(!calls().includes('backup'));
+  assert.equal(fs.readlinkSync(path.join(root, 'current')), path.join(root, `releases/${previousId}`));
+});
+test('operational backlog does not prevent a deployment or rollback', t => {
+  const { run, calls } = fixture(t, 'backlog');
+  const deployment = run();
+  assert.equal(deployment.status, 0, deployment.stderr);
+  const rollback = run('rollback', previousId);
+  assert.equal(rollback.status, 0, rollback.stderr);
+  assert.equal(calls().filter(call => call === 'up').length, 2);
 });
 test('a corrupted release fails before maintenance or migration', t => {
   const { root, run } = fixture(t);

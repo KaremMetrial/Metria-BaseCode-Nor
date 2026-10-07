@@ -45,7 +45,7 @@ final class CreatePayment
             return $payment;
         }
         // Never recreate an ambiguous charge after the provider's idempotency retention window.
-        if ($payment->created_at->lt(now()->subHours(23))) {
+        if ($payment->created_at->lt(now()->subMinutes((int) config('payments.providers.'.$provider.'.idempotency_minutes', 1380)))) {
             throw new DomainException(ErrorCode::RECONCILIATION_REQUIRED);
         }
         $result = $gateway->create($payment);
@@ -55,7 +55,7 @@ final class CreatePayment
             if ($locked->provider_reference !== null && $locked->provider_reference !== $result['reference']) {
                 throw new DomainException(ErrorCode::IDEMPOTENCY_CONFLICT);
             }
-            $locked->forceFill(['provider_reference' => $result['reference'], 'client_secret' => $result['client_secret']])->save();
+            $locked->forceFill(['provider_reference' => $result['reference'], 'client_secret' => $result['client_secret'] ?? null, 'payment_url' => $result['payment_url'] ?? null])->save();
 
             return $locked;
         }, 5);

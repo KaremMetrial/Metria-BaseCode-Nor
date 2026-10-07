@@ -67,6 +67,7 @@ services:
 YAML
 compose up -d --wait --wait-timeout 180 db redis
 compose run --rm --no-deps app php artisan migrate --force --no-interaction
+compose run --rm --no-deps app php artisan db:seed --class=DatabaseSeeder --force --no-interaction
 compose up -d --wait --wait-timeout 180 app socketio web queue scheduler
 compose exec -T app php artisan app:readiness
 endpoint=$(compose port web 8080)

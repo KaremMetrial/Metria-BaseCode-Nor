@@ -61,6 +61,7 @@ artisan config:cache
 artisan route:cache
 artisan event:cache
 artisan app:readiness --configuration-only "${readiness_options[@]}"
+artisan app:readiness --deployment "${readiness_options[@]}"
 # Cron entries must use these same locks. Wait for active jobs before migration.
 exec 8>"$root/queue.lock"
 flock -w 180 8
@@ -78,8 +79,9 @@ if [[ "$mode" == deploy ]]; then
     gzip -t "$backup.tmp"
     mv "$backup.tmp" "$backup"
     artisan migrate --force
+    artisan db:seed --class=DatabaseSeeder --force
 fi
-artisan app:readiness "${readiness_options[@]}"
+artisan app:readiness --deployment "${readiness_options[@]}"
 if [[ -n "$previous" && "$previous" != "$release" ]]; then
     ln -sfn "$previous" "$root/previous.next"
     mv -Tf "$root/previous.next" "$root/previous"

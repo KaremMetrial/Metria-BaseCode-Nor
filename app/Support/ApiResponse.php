@@ -31,7 +31,7 @@ final class ApiResponse
             'success' => true,
             'message' => $message,
             'data' => $data,
-        ], $status);
+        ], $status, ['Content-Language' => app()->getLocale()]);
     }
 
     /**
@@ -49,7 +49,7 @@ final class ApiResponse
             'message' => $message ?? self::messageFor($code),
             // Cast so an empty payload serialises as {} rather than [].
             'errors' => (object) $errors,
-        ], $status ?? self::defaultStatus($code));
+        ], $status ?? self::defaultStatus($code), ['Content-Language' => app()->getLocale()]);
     }
 
     /**
@@ -63,7 +63,7 @@ final class ApiResponse
 
         $message = $locale === null ? __($key) : trans($key, [], $locale);
 
-        return $message === $key ? __('errors.INTERNAL_ERROR') : $message;
+        return $message === $key ? trans('errors.INTERNAL_ERROR', [], $locale) : $message;
     }
 
     /**

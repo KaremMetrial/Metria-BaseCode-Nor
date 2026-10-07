@@ -33,13 +33,19 @@ final class ReconcilePayment
                 $unresolved++;
             }
         }
-        foreach (PaymentRefund::query()->where('payment_id', $payment->id)->where('status', 'pending')->orderBy('id')->limit(25)->get() as $refund) {
-            $event = $gateway->lookupRefund($payment, $refund);
-            if ($event !== null && in_array($event['status'], ['succeeded', 'failed', 'canceled'], true)) {
-                $this->events->applyVerifiedEvent($payment->provider, $event);
-                $settled++;
-            } else {
+        foreach (PaymentRefund::query()->where('payment_id', $payment->id)->where('status', 'pending')->orderBy('updated_at')->orderBy('id')->limit(25)->get() as $refund) {
+            try {
+                $event = $gateway->lookupRefund($payment, $refund);
+                if ($event !== null && in_array($event['status'], ['succeeded', 'failed', 'canceled'], true)) {
+                    $this->events->applyVerifiedEvent($payment->provider, $event);
+                    $settled++;
+                } else {
+                    $unresolved++;
+                }
+            } catch (DomainException) {
                 $unresolved++;
+            } finally {
+                PaymentRefund::query()->whereKey($refund->id)->update(['updated_at' => now()]);
             }
         }
 

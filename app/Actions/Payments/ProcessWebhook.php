@@ -14,7 +14,9 @@ use App\Models\User;
 use App\Models\Wallet;
 use App\Services\Notifications\NotificationOutbox;
 use App\Services\Payments\GatewayManager;
+use App\Services\Payments\MyFatoorahEntities;
 use App\Services\Wallet\WalletService;
+use App\Support\Money;
 use Illuminate\Support\Facades\DB;
 
 final class ProcessWebhook
@@ -42,13 +44,18 @@ final class ProcessWebhook
                 return;
             }
 
+            if ($provider === 'myfatoorah' && $event['type'] === 'integration.updated') {
+                app(MyFatoorahEntities::class)->webhook($event);
+
+                return;
+            }
             if ($event['type'] === 'refund.updated') {
                 $refund = PaymentRefund::query()->where('uuid', $event['refund_uuid'] ?? '')->first();
                 if (! $refund) {
                     throw new DomainException(ErrorCode::RECONCILIATION_REQUIRED);
                 }
                 $payment = Payment::query()->whereKey($refund->payment_id)->lockForUpdate()->firstOrFail();
-                if ($payment->provider !== $provider || $payment->provider_reference !== ($event['payment_reference'] ?? null) || $refund->amount !== ($event['amount'] ?? null) || $payment->currency !== strtoupper($event['currency'] ?? '')) {
+                if (! is_string($event['reference'] ?? null) || $event['reference'] === '' || $payment->provider !== $provider || $payment->provider_reference !== ($event['payment_reference'] ?? null) || $refund->amount !== ($event['amount'] ?? null) || $payment->currency !== strtoupper($event['currency'] ?? '')) {
                     throw new DomainException(ErrorCode::INVALID_WEBHOOK);
                 }
                 $status = match ($event['status'] ?? '') {
@@ -83,7 +90,7 @@ final class ProcessWebhook
                 }
                 $this->wallets->change(Wallet::query()->findOrFail($payment->wallet_id), WalletTransactionType::CREDIT, $payment->amount, 'payment:'.$payment->uuid, 'payment_received');
                 $payment->forceFill(['provider_reference' => $event['reference'], 'status' => PaymentStatus::PAID])->save();
-                $this->notifications->record(User::withTrashed()->findOrFail($payment->user_id), 'notifications.payment_received', ['amount' => sprintf('%d.%02d', intdiv($payment->amount, 100), $payment->amount % 100), 'currency' => $payment->currency], 'payment:'.$payment->uuid);
+                $this->notifications->record(User::withTrashed()->findOrFail($payment->user_id), 'notifications.payment_received', ['amount' => Money::decimal($payment->amount, $payment->currency), 'currency' => $payment->currency], 'payment:'.$payment->uuid);
                 event(new PaymentReceived($payment->id));
             } elseif (in_array($payment->status, [PaymentStatus::PENDING, PaymentStatus::PROCESSING], true)) {
                 if (($event['status'] ?? '') !== 'canceled') {

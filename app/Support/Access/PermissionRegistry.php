@@ -52,6 +52,8 @@ final class PermissionRegistry
 
     public const PAYMENTS_REFUND = 'payments.refund';
 
+    public const MYFATOORAH_MANAGE = 'myfatoorah.manage';
+
     // Wallets
     public const WALLETS_READ = 'wallets.read';
 

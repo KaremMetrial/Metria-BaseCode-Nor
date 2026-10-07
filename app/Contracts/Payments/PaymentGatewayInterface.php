@@ -2,15 +2,20 @@
 
 namespace App\Contracts\Payments;
 
+use App\Exceptions\RefundRejectedException;
 use App\Models\Payment;
 use App\Models\PaymentRefund;
 
 interface PaymentGatewayInterface
 {
-    /** @return array{reference:string,client_secret:string} */
+    /** @return array{reference:string,client_secret?:string,payment_url?:string} */
     public function create(Payment $payment): array;
 
-    /** @return array{reference:string,status:string} status: succeeded, pending, failed */
+    /**
+     * @return array{reference:string,status:string} status: succeeded, pending, failed
+     *
+     * @throws RefundRejectedException Only when no refund was created by this request.
+     */
     public function refund(Payment $payment, PaymentRefund $refund): array;
 
     /** Verified, provider-neutral event. Invalid signatures must throw. */

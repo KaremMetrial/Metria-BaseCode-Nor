@@ -16,13 +16,15 @@ test('cPanel archive excludes secrets and dev tools and boots Laravel with cache
   for (const absent of ['.git', 'tests', 'vendor/phpunit', 'vendor/laravel/boost', 'docker/socketio/node_modules/socket.io-client']) {
     assert.ok(!fs.existsSync(path.join(directory, absent)), `${absent} must not ship`);
   }
-  for (const required of ['vendor/autoload.php', 'public/build/manifest.json', 'docker/socketio/app.js', 'docker/socketio/node_modules/dotenv', 'docker/socketio/public']) {
+  for (const required of ['vendor/autoload.php', 'lang/en/otp.php', 'lang/ar/otp.php', 'public/build/manifest.json', 'docker/socketio/app.js', 'docker/socketio/node_modules/dotenv', 'docker/socketio/public']) {
     assert.ok(fs.existsSync(path.join(directory, required)), `${required} is needed on cPanel`);
   }
   for (const writable of ['storage/framework/cache/data', 'storage/framework/sessions', 'storage/framework/views', 'storage/logs']) {
     fs.mkdirSync(path.join(directory, writable), { recursive: true });
   }
-  const env = { PATH: process.env.PATH, APP_ENV: 'production', APP_DEBUG: 'false', LOG_CHANNEL: 'stderr', APP_KEY: `base64:${Buffer.alloc(32, 1).toString('base64')}`, CACHE_STORE: 'array' };
+  const database = path.join(directory, 'release-test.sqlite');
+  fs.writeFileSync(database, '');
+  const env = { PATH: process.env.PATH, APP_ENV: 'production', APP_DEBUG: 'false', LOG_CHANNEL: 'stderr', APP_KEY: `base64:${Buffer.alloc(32, 1).toString('base64')}`, CACHE_STORE: 'array', DB_CONNECTION: 'sqlite', DB_DATABASE: database, DB_URL: '' };
   for (const command of ['config:cache', 'route:cache', 'event:cache']) {
     const result = spawnSync(process.env.PHP_BINARY || 'php', ['artisan', command, '--no-interaction'], { cwd: directory, env, encoding: 'utf8' });
     assert.equal(result.status, 0, result.stderr + result.stdout);
@@ -30,4 +32,29 @@ test('cPanel archive excludes secrets and dev tools and boots Laravel with cache
   const routes = spawnSync(process.env.PHP_BINARY || 'php', ['artisan', 'route:list', '--path=api/v1/categories', '--json'], { cwd: directory, env, encoding: 'utf8' });
   assert.equal(routes.status, 0, routes.stderr);
   assert.ok(JSON.parse(routes.stdout).some(route => route.uri === 'api/v1/categories'));
+  for (const args of [['migrate', '--force'], ['db:seed', '--class=DatabaseSeeder', '--force']]) {
+    const result = spawnSync(process.env.PHP_BINARY || 'php', ['artisan', ...args, '--no-interaction'], { cwd: directory, env, encoding: 'utf8' });
+    assert.equal(result.status, 0, result.stderr + result.stdout);
+  }
+  const probe = String.raw`
+    require 'vendor/autoload.php';
+    $app = require 'bootstrap/app.php';
+    $app->make(Illuminate\Contracts\Console\Kernel::class)->bootstrap();
+    echo json_encode([
+      'sms' => [trans('otp.sms', ['code' => '654321'], 'en'), trans('otp.sms', ['code' => '654321'], 'ar')],
+      'countries' => App\Models\Country::query()->where('is_active', true)->count(),
+      'roles' => Spatie\Permission\Models\Role::query()->pluck('name')->all(),
+      'refund_permission' => Spatie\Permission\Models\Permission::query()->where('name', 'payments.refund')->exists(),
+      'users' => App\Models\User::query()->count(),
+    ], JSON_THROW_ON_ERROR);
+  `;
+  const result = spawnSync(process.env.PHP_BINARY || 'php', ['-r', probe], { cwd: directory, env, encoding: 'utf8' });
+  assert.equal(result.status, 0, result.stderr + result.stdout);
+  const data = JSON.parse(result.stdout);
+  for (const sms of data.sms) assert.match(sms, /654321/);
+  assert.notEqual(data.sms[0], data.sms[1], 'English and Arabic OTP messages must be localized');
+  assert.ok(data.countries > 0, 'fresh production releases need supported phone countries');
+  assert.ok(data.roles.includes('super-admin') && data.roles.includes('finance-admin'));
+  assert.equal(data.refund_permission, true);
+  assert.equal(data.users, 0, 'production seeding must not create a default administrator');
 });

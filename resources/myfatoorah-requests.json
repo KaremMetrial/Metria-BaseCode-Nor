@@ -1,0 +1,1976 @@
+{
+  "create-payment": {
+    "method": "POST",
+    "path": "/v3/payments",
+    "query": [],
+    "parameters": [],
+    "schema": {
+      "type": "object",
+      "required": [
+        "Order"
+      ],
+      "properties": {
+        "PaymentMethod": {
+          "type": "string",
+          "enum": [
+            "CARD",
+            "APPLE_PAY",
+            "GOOGLE_PAY",
+            "KNET"
+          ]
+        },
+        "Order": {
+          "type": "object",
+          "required": [
+            "Amount"
+          ],
+          "properties": {
+            "Amount": {
+              "type": "number"
+            },
+            "Currency": {
+              "type": "string",
+              "enum": [
+                "SAR",
+                "BHD",
+                "AED",
+                "QAR",
+                "OMR",
+                "KWD",
+                "JOD",
+                "EGP"
+              ]
+            },
+            "ExternalIdentifier": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false
+        },
+        "SourceOfFund": {
+          "type": "object",
+          "properties": {
+            "SessionId": {
+              "type": "string"
+            },
+            "Token": {
+              "type": "string"
+            },
+            "Type": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false
+        },
+        "PaymentExpiry": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "SaveCardOptions": {
+          "type": "object",
+          "properties": {
+            "SaveToken": {
+              "type": "boolean"
+            }
+          },
+          "additionalProperties": false
+        },
+        "ThreeDS": {
+          "type": "object",
+          "properties": {
+            "Enabled": {
+              "type": "boolean"
+            },
+            "AuthenticationValue": {
+              "type": "string"
+            },
+            "DirectoryServerTransactionId": {
+              "type": "string"
+            },
+            "Eci": {
+              "type": "string"
+            },
+            "ProtocolVersion": {
+              "type": "string"
+            },
+            "TransactionStatus": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false
+        },
+        "NotificationOption": {
+          "type": "string",
+          "enum": [
+            "EMAIL",
+            "SMS",
+            "ALL",
+            "LINK"
+          ]
+        },
+        "OperationType": {
+          "type": "string",
+          "enum": [
+            "AUTHORIZE",
+            "PAY"
+          ]
+        },
+        "Suppliers": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "SupplierCode": {
+                "type": "integer"
+              },
+              "ProposedDepositShare": {
+                "type": "number"
+              },
+              "InvoiceShare": {
+                "type": "number"
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "Customer": {
+          "type": "object",
+          "properties": {
+            "Name": {
+              "type": "string"
+            },
+            "Mobile": {
+              "type": "object",
+              "properties": {
+                "CountryCode": {
+                  "type": "string"
+                },
+                "Number": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": false
+            },
+            "Email": {
+              "type": "string"
+            },
+            "Reference": {
+              "type": "string"
+            },
+            "CivilId": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false
+        },
+        "IntegrationUrls": {
+          "type": "object",
+          "properties": {
+            "Redirection": {
+              "type": "string"
+            },
+            "Webhook": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false
+        },
+        "Language": {
+          "type": "string",
+          "enum": [
+            "EN",
+            "AR"
+          ]
+        },
+        "IpAddress": {
+          "type": "string"
+        },
+        "MetaData": {
+          "type": "object",
+          "properties": {
+            "UDF1": {
+              "type": "string"
+            },
+            "UDF2": {
+              "type": "string"
+            },
+            "UDF3": {
+              "type": "string"
+            },
+            "UDF4": {
+              "type": "string"
+            },
+            "UDF5": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false
+        },
+        "DisplayPaymentMethods": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "NetworkTransactionId": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "create-session": {
+    "method": "POST",
+    "path": "/v3/sessions",
+    "query": [],
+    "parameters": [],
+    "schema": {
+      "type": "object",
+      "required": [
+        "PaymentMode",
+        "Order"
+      ],
+      "properties": {
+        "PaymentMode": {
+          "type": "string",
+          "enum": [
+            "COMPLETE_PAYMENT",
+            "COLLECT_DETAILS"
+          ]
+        },
+        "Order": {
+          "type": "object",
+          "required": [
+            "Amount"
+          ],
+          "properties": {
+            "Amount": {
+              "type": "number"
+            },
+            "Currency": {
+              "type": "string",
+              "enum": [
+                "SAR",
+                "BHD",
+                "AED",
+                "QAR",
+                "OMR",
+                "KWD",
+                "JOD",
+                "EGP"
+              ]
+            },
+            "ExternalIdentifier": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false
+        },
+        "SupportedNetworks": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "SaveCardOptions": {
+          "type": "object",
+          "properties": {
+            "SaveToken": {
+              "type": "boolean"
+            },
+            "ShowSavedCardsInCardView": {
+              "type": "boolean"
+            },
+            "RetrieveSavedTokens": {
+              "type": "boolean"
+            }
+          },
+          "additionalProperties": false
+        },
+        "SupportedPaymentMethods": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "SessionExpiry": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "ThreeDS": {
+          "type": "object",
+          "properties": {
+            "Enabled": {
+              "type": "boolean"
+            }
+          },
+          "additionalProperties": false
+        },
+        "OperationType": {
+          "type": "string",
+          "enum": [
+            "AUTHORIZE",
+            "PAY",
+            "VERIFY"
+          ]
+        },
+        "Suppliers": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "SupplierCode": {
+                "type": "integer"
+              },
+              "ProposedDepositShare": {
+                "type": "number"
+              },
+              "InvoiceShare": {
+                "type": "number"
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "Customer": {
+          "type": "object",
+          "properties": {
+            "Name": {
+              "type": "string"
+            },
+            "Mobile": {
+              "type": "object",
+              "properties": {
+                "CountryCode": {
+                  "type": "string"
+                },
+                "Number": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": false
+            },
+            "Email": {
+              "type": "string"
+            },
+            "Reference": {
+              "type": "string"
+            },
+            "CivilId": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false
+        },
+        "IntegrationUrls": {
+          "type": "object",
+          "properties": {
+            "Redirection": {
+              "type": "string"
+            },
+            "Webhook": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false
+        },
+        "Language": {
+          "type": "string",
+          "enum": [
+            "EN",
+            "AR"
+          ]
+        },
+        "MetaData": {
+          "type": "object",
+          "properties": {
+            "UDF1": {
+              "type": "string"
+            },
+            "UDF2": {
+              "type": "string"
+            },
+            "UDF3": {
+              "type": "string"
+            },
+            "UDF4": {
+              "type": "string"
+            },
+            "UDF5": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "get-session-details": {
+    "method": "GET",
+    "path": "/v3/sessions/{sessionId}",
+    "query": [],
+    "parameters": [
+      "sessionId"
+    ],
+    "schema": {
+      "type": "object",
+      "properties": {
+        "sessionId": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "sessionId"
+      ]
+    }
+  },
+  "get-payment-details": {
+    "method": "GET",
+    "path": "/v3/payments/{paymentId}",
+    "query": [],
+    "parameters": [
+      "paymentId"
+    ],
+    "schema": {
+      "type": "object",
+      "properties": {
+        "paymentId": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "paymentId"
+      ]
+    }
+  },
+  "get-invoice-by-invoiceid": {
+    "method": "GET",
+    "path": "/v3/invoices/{InvoiceId}",
+    "query": [],
+    "parameters": [
+      "InvoiceId"
+    ],
+    "schema": {
+      "type": "object",
+      "properties": {
+        "InvoiceId": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "InvoiceId"
+      ]
+    }
+  },
+  "get-invoice-by-externalidentifier": {
+    "method": "GET",
+    "path": "/v3/invoices/externalIdentifier/{externalIdentifier}",
+    "query": [],
+    "parameters": [
+      "externalIdentifier"
+    ],
+    "schema": {
+      "type": "object",
+      "properties": {
+        "externalIdentifier": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "externalIdentifier"
+      ]
+    }
+  },
+  "get-customer-details": {
+    "method": "GET",
+    "path": "/v3/customers/{Reference}",
+    "query": [],
+    "parameters": [
+      "Reference"
+    ],
+    "schema": {
+      "type": "object",
+      "properties": {
+        "Reference": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "Reference"
+      ]
+    }
+  },
+  "get-payment-methods": {
+    "method": "GET",
+    "path": "/v3/payment-methods",
+    "query": [],
+    "parameters": [],
+    "schema": {
+      "type": "object",
+      "properties": {},
+      "additionalProperties": false,
+      "required": []
+    }
+  },
+  "update-payment": {
+    "method": "PUT",
+    "path": "/v3/payments/{paymentId}",
+    "query": [],
+    "parameters": [
+      "paymentId"
+    ],
+    "schema": {
+      "type": "object",
+      "required": [
+        "OperationType",
+        "paymentId"
+      ],
+      "properties": {
+        "OperationType": {
+          "type": "string",
+          "enum": [
+            "CAPTURE",
+            "RELEASE"
+          ]
+        },
+        "Amount": {
+          "type": "number"
+        },
+        "paymentId": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "create-refund": {
+    "method": "POST",
+    "path": "/v3/refunds",
+    "query": [],
+    "parameters": [],
+    "schema": {
+      "type": "object",
+      "required": [
+        "PaymentId",
+        "Amount"
+      ],
+      "properties": {
+        "PaymentId": {
+          "type": "string"
+        },
+        "Amount": {
+          "type": "number"
+        },
+        "ExternalIdentifier": {
+          "type": "string"
+        },
+        "SupplierRefundedAmount": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "Code": {
+                "type": "string"
+              },
+              "Amount": {
+                "type": "number"
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "Comment": {
+          "type": "string"
+        },
+        "ServiceChargeOnCustomer": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "get-refund-details": {
+    "method": "GET",
+    "path": "/v3/refunds/{refundId}",
+    "query": [],
+    "parameters": [
+      "refundId"
+    ],
+    "schema": {
+      "type": "object",
+      "properties": {
+        "refundId": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "refundId"
+      ]
+    }
+  },
+  "execute-payment": {
+    "method": "POST",
+    "path": "/v2/ExecutePayment",
+    "query": [],
+    "parameters": [],
+    "schema": {
+      "type": "object",
+      "required": [
+        "InvoiceValue"
+      ],
+      "properties": {
+        "InvoiceValue": {
+          "type": "number"
+        },
+        "PaymentMethodId": {
+          "type": "integer"
+        },
+        "SessionId": {
+          "type": "string"
+        },
+        "CustomerName": {
+          "type": "string"
+        },
+        "CallBackUrl": {
+          "type": "string"
+        },
+        "ErrorUrl": {
+          "type": "string"
+        },
+        "DisplayCurrencyIso": {
+          "type": "string",
+          "enum": [
+            "KWD",
+            "SAR",
+            "BHD",
+            "AED",
+            "QAR",
+            "OMR",
+            "JOD",
+            "EGP"
+          ]
+        },
+        "MobileCountryCode": {
+          "type": "string"
+        },
+        "CustomerMobile": {
+          "type": "string"
+        },
+        "CustomerEmail": {
+          "type": "string"
+        },
+        "Language": {
+          "type": "string",
+          "enum": [
+            "EN",
+            "AR"
+          ]
+        },
+        "CustomerReference": {
+          "type": "string"
+        },
+        "CustomerCivilId": {
+          "type": "string"
+        },
+        "UserDefinedField": {
+          "type": "string"
+        },
+        "CustomerAddress": {
+          "type": "object",
+          "properties": {
+            "Block": {
+              "type": "string"
+            },
+            "Street": {
+              "type": "string"
+            },
+            "HouseBuildingNo": {
+              "type": "string"
+            },
+            "Address": {
+              "type": "string"
+            },
+            "AddressInstructions": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false
+        },
+        "ExpiryDate": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "InvoiceItems": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "ItemName",
+              "Quantity",
+              "UnitPrice"
+            ],
+            "properties": {
+              "ItemName": {
+                "type": "string"
+              },
+              "Quantity": {
+                "type": "integer"
+              },
+              "UnitPrice": {
+                "type": "number"
+              },
+              "Weight": {
+                "type": "number"
+              },
+              "Width": {
+                "type": "number"
+              },
+              "Height": {
+                "type": "number"
+              },
+              "Depth": {
+                "type": "number"
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "ShippingMethod": {
+          "type": "integer",
+          "enum": [
+            1,
+            2
+          ]
+        },
+        "ShippingConsignee": {
+          "type": "object",
+          "required": [
+            "PersonName",
+            "Mobile",
+            "LineAddress",
+            "CityName",
+            "CountryCode"
+          ],
+          "properties": {
+            "PersonName": {
+              "type": "string"
+            },
+            "Mobile": {
+              "type": "string"
+            },
+            "EmailAddress": {
+              "type": "string"
+            },
+            "LineAddress": {
+              "type": "string"
+            },
+            "CityName": {
+              "type": "string"
+            },
+            "PostalCode": {
+              "type": "string"
+            },
+            "CountryCode": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false
+        },
+        "Suppliers": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "SupplierCode",
+              "InvoiceShare"
+            ],
+            "properties": {
+              "SupplierCode": {
+                "type": "integer"
+              },
+              "ProposedShare": {
+                "type": "number"
+              },
+              "InvoiceShare": {
+                "type": "number"
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "RecurringModel": {
+          "type": "object",
+          "properties": {
+            "RecurringType": {
+              "type": "string",
+              "enum": [
+                "Custom",
+                "Daily",
+                "Weekly",
+                "Monthly"
+              ]
+            },
+            "IntervalDays": {
+              "type": "integer"
+            },
+            "Iteration": {
+              "type": "integer"
+            },
+            "RetryCount": {
+              "type": "integer"
+            }
+          },
+          "additionalProperties": false
+        },
+        "ProcessingDetails": {
+          "type": "object",
+          "properties": {
+            "AutoCapture": {
+              "type": "boolean"
+            },
+            "Bypass3DS": {
+              "type": "boolean"
+            }
+          },
+          "additionalProperties": false
+        },
+        "WebhookUrl": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "send-payment": {
+    "method": "POST",
+    "path": "/v2/SendPayment",
+    "query": [],
+    "parameters": [],
+    "schema": {
+      "type": "object",
+      "required": [
+        "CustomerName",
+        "NotificationOption",
+        "InvoiceValue"
+      ],
+      "properties": {
+        "CustomerName": {
+          "type": "string"
+        },
+        "InvoiceValue": {
+          "type": "number"
+        },
+        "NotificationOption": {
+          "type": "string",
+          "enum": [
+            "EML",
+            "SMS",
+            "LNK",
+            "ALL"
+          ]
+        },
+        "DisplayCurrencyIso": {
+          "type": "string",
+          "enum": [
+            "KWD",
+            "SAR",
+            "BHD",
+            "AED",
+            "QAR",
+            "OMR",
+            "JOD",
+            "EGP"
+          ]
+        },
+        "MobileCountryCode": {
+          "type": "string"
+        },
+        "CustomerMobile": {
+          "type": "string"
+        },
+        "CustomerEmail": {
+          "type": "string"
+        },
+        "Language": {
+          "type": "string",
+          "enum": [
+            "EN",
+            "AR"
+          ]
+        },
+        "CustomerReference": {
+          "type": "string"
+        },
+        "CustomerCivilId": {
+          "type": "string"
+        },
+        "UserDefinedField": {
+          "type": "string"
+        },
+        "CallBackUrl": {
+          "type": "string"
+        },
+        "ErrorUrl": {
+          "type": "string"
+        },
+        "CustomerAddress": {
+          "type": "object",
+          "properties": {
+            "Block": {
+              "type": "string"
+            },
+            "Street": {
+              "type": "string"
+            },
+            "HouseBuildingNo": {
+              "type": "string"
+            },
+            "AddressInstructions": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false
+        },
+        "ExpiryDate": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "InvoiceItems": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "ItemName",
+              "Quantity",
+              "UnitPrice"
+            ],
+            "properties": {
+              "ItemName": {
+                "type": "string"
+              },
+              "Quantity": {
+                "type": "integer"
+              },
+              "UnitPrice": {
+                "type": "number"
+              },
+              "Weight": {
+                "type": "number"
+              },
+              "Width": {
+                "type": "number"
+              },
+              "Height": {
+                "type": "number"
+              },
+              "Depth": {
+                "type": "number"
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "ShippingMethod": {
+          "type": "integer",
+          "enum": [
+            1,
+            2
+          ]
+        },
+        "ShippingConsignee": {
+          "type": "object",
+          "required": [
+            "PersonName",
+            "Mobile",
+            "LineAddress",
+            "CityName",
+            "CountryCode"
+          ],
+          "properties": {
+            "PersonName": {
+              "type": "string"
+            },
+            "Mobile": {
+              "type": "string"
+            },
+            "EmailAddress": {
+              "type": "string",
+              "format": "email"
+            },
+            "LineAddress": {
+              "type": "string"
+            },
+            "CityName": {
+              "type": "string"
+            },
+            "PostalCode": {
+              "type": "string"
+            },
+            "CountryCode": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false
+        },
+        "Suppliers": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "SupplierCode",
+              "InvoiceShare"
+            ],
+            "properties": {
+              "SupplierCode": {
+                "type": "integer"
+              },
+              "ProposedShare": {
+                "type": "number"
+              },
+              "InvoiceShare": {
+                "type": "number"
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "ProcessingDetails": {
+          "type": "object",
+          "properties": {
+            "AutoCapture": {
+              "type": "boolean"
+            }
+          },
+          "additionalProperties": false
+        },
+        "InvoicePaymentMethods": {
+          "type": "array",
+          "items": {
+            "type": "integer"
+          }
+        },
+        "WebhookUrl": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "get-recurring-payment": {
+    "method": "GET",
+    "path": "/v2/GetRecurringPayment",
+    "query": [],
+    "parameters": [],
+    "schema": {
+      "type": "object",
+      "properties": {},
+      "additionalProperties": false,
+      "required": []
+    }
+  },
+  "cancel-recurring-payment": {
+    "method": "POST",
+    "path": "/v2/CancelRecurringPayment",
+    "query": [
+      "recurringId"
+    ],
+    "parameters": [],
+    "schema": {
+      "type": "object",
+      "properties": {
+        "recurringId": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "recurringId"
+      ]
+    }
+  },
+  "resume-recurring-payment": {
+    "method": "POST",
+    "path": "/v2/ResumeRecurringPayment",
+    "query": [
+      "recurringId"
+    ],
+    "parameters": [],
+    "schema": {
+      "type": "object",
+      "properties": {
+        "recurringId": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "recurringId"
+      ]
+    }
+  },
+  "create-supplier": {
+    "method": "POST",
+    "path": "/v2/CreateSupplier",
+    "query": [],
+    "parameters": [],
+    "schema": {
+      "type": "object",
+      "required": [
+        "SupplierName",
+        "Mobile",
+        "Email"
+      ],
+      "properties": {
+        "SupplierName": {
+          "type": "string"
+        },
+        "Mobile": {
+          "type": "string"
+        },
+        "Email": {
+          "type": "string",
+          "format": "email"
+        },
+        "CommissionValue": {
+          "type": "number"
+        },
+        "CommissionPercentage": {
+          "type": "number"
+        },
+        "IsPercentageOfNetValue": {
+          "type": "boolean"
+        },
+        "DepositTerms": {
+          "type": "string",
+          "enum": [
+            "Daily",
+            "Weekly",
+            "Monthly",
+            "OnDemand"
+          ]
+        },
+        "DepositDay": {
+          "type": "string"
+        },
+        "BankId": {
+          "type": "integer"
+        },
+        "BankAccountHolderName": {
+          "type": "string"
+        },
+        "BankAccount": {
+          "type": "string"
+        },
+        "Iban": {
+          "type": "string"
+        },
+        "IsActive": {
+          "type": "boolean"
+        },
+        "LogoFile": {
+          "type": "object",
+          "properties": {
+            "FileName": {
+              "type": "string"
+            },
+            "MediaType": {
+              "type": "string"
+            },
+            "Buffer": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false
+        },
+        "DisplaySupplierDetails": {
+          "type": "boolean"
+        },
+        "BusinessName": {
+          "type": "string"
+        },
+        "BusinessType": {
+          "type": "number",
+          "enum": [
+            1,
+            2
+          ]
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "edit-supplier": {
+    "method": "POST",
+    "path": "/v2/EditSupplier",
+    "query": [],
+    "parameters": [],
+    "schema": {
+      "type": "object",
+      "required": [
+        "SupplierCode",
+        "SupplierName",
+        "Mobile",
+        "Email"
+      ],
+      "properties": {
+        "SupplierCode": {
+          "type": "integer"
+        },
+        "SupplierName": {
+          "type": "string"
+        },
+        "Mobile": {
+          "type": "string"
+        },
+        "Email": {
+          "type": "string",
+          "format": "email"
+        },
+        "CommissionValue": {
+          "type": "number"
+        },
+        "CommissionPercentage": {
+          "type": "number"
+        },
+        "IsPercentageOfNetValue": {
+          "type": "boolean"
+        },
+        "DepositTerms": {
+          "type": "string",
+          "enum": [
+            "Daily",
+            "Weekly",
+            "Monthly",
+            "OnDemand"
+          ]
+        },
+        "DepositDay": {
+          "type": "string"
+        },
+        "BankId": {
+          "type": "integer"
+        },
+        "BankAccountHolderName": {
+          "type": "string"
+        },
+        "BankAccount": {
+          "type": "string"
+        },
+        "Iban": {
+          "type": "string"
+        },
+        "LogoFile": {
+          "type": "object",
+          "properties": {
+            "FileName": {
+              "type": "string"
+            },
+            "MediaType": {
+              "type": "string"
+            },
+            "Buffer": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false
+        },
+        "BusinessName": {
+          "type": "string"
+        },
+        "DisplaySupplierDetails": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "customize-supplier-commissions": {
+    "method": "POST",
+    "path": "/v2/CustomizeSupplierCommissions",
+    "query": [],
+    "parameters": [],
+    "schema": {
+      "type": "object",
+      "required": [
+        "SupplierCode"
+      ],
+      "properties": {
+        "SupplierCode": {
+          "type": "integer"
+        },
+        "SupplierCommissions": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "PaymentMethodId": {
+                "type": "integer"
+              },
+              "CommissionValue": {
+                "type": "number"
+              },
+              "CommissionPercentage": {
+                "type": "number"
+              },
+              "IsPercentageOfNetValue": {
+                "type": "boolean"
+              }
+            },
+            "additionalProperties": false
+          }
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "transfer-balance": {
+    "method": "POST",
+    "path": "/v2/TransferBalance",
+    "query": [],
+    "parameters": [],
+    "schema": {
+      "type": "object",
+      "required": [
+        "SupplierCode",
+        "TransferAmount",
+        "TransferType"
+      ],
+      "properties": {
+        "SupplierCode": {
+          "type": "integer"
+        },
+        "TransferAmount": {
+          "type": "number"
+        },
+        "TransferType": {
+          "type": "string",
+          "enum": [
+            "pull",
+            "push"
+          ]
+        },
+        "InternalNotes": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "upload-supplier-document": {
+    "method": "PUT",
+    "path": "/v2/UploadSupplierDocument",
+    "query": [],
+    "parameters": [],
+    "schema": {
+      "type": "object",
+      "required": [
+        "FileUpload",
+        "FileType",
+        "SupplierCode"
+      ],
+      "properties": {
+        "FileUpload": {
+          "type": "object",
+          "required": [
+            "FileName",
+            "MediaType",
+            "Buffer"
+          ],
+          "properties": {
+            "FileName": {
+              "type": "string"
+            },
+            "MediaType": {
+              "type": "string"
+            },
+            "Buffer": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false
+        },
+        "FileType": {
+          "type": "integer",
+          "enum": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            16,
+            17,
+            20,
+            21,
+            25,
+            26,
+            27,
+            28,
+            30
+          ]
+        },
+        "ExpireDate": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "SupplierCode": {
+          "type": "integer"
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "get-suppliers": {
+    "method": "GET",
+    "path": "/v2/GetSuppliers",
+    "query": [],
+    "parameters": [],
+    "schema": {
+      "type": "object",
+      "properties": {},
+      "additionalProperties": false,
+      "required": []
+    }
+  },
+  "get-supplier-details": {
+    "method": "GET",
+    "path": "/v2/GetSupplierDetails",
+    "query": [
+      "SupplierCode"
+    ],
+    "parameters": [],
+    "schema": {
+      "type": "object",
+      "properties": {
+        "SupplierCode": {
+          "type": "integer"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "SupplierCode"
+      ]
+    }
+  },
+  "get-supplier-deposits": {
+    "method": "GET",
+    "path": "/v2/GetSupplierDeposits",
+    "query": [
+      "SupplierCode",
+      "search",
+      "start",
+      "length",
+      "sortColumn",
+      "sortDirection"
+    ],
+    "parameters": [],
+    "schema": {
+      "type": "object",
+      "properties": {
+        "SupplierCode": {
+          "type": "integer"
+        },
+        "search": {
+          "type": "string"
+        },
+        "start": {
+          "type": "integer"
+        },
+        "length": {
+          "type": "integer"
+        },
+        "sortColumn": {
+          "type": "string"
+        },
+        "sortDirection": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "SupplierCode"
+      ]
+    }
+  },
+  "get-supplier-documents": {
+    "method": "GET",
+    "path": "/v2/GetSupplierDocuments",
+    "query": [
+      "SupplierCode"
+    ],
+    "parameters": [],
+    "schema": {
+      "type": "object",
+      "properties": {
+        "SupplierCode": {
+          "type": "integer"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "SupplierCode"
+      ]
+    }
+  },
+  "get-supplier-dashboard": {
+    "method": "GET",
+    "path": "/v2/GetSupplierDashboard",
+    "query": [
+      "SupplierCode"
+    ],
+    "parameters": [],
+    "schema": {
+      "type": "object",
+      "properties": {
+        "SupplierCode": {
+          "type": "integer"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "SupplierCode"
+      ]
+    }
+  },
+  "get-countries": {
+    "method": "GET",
+    "path": "/v2/GetCountries",
+    "query": [],
+    "parameters": [],
+    "schema": {
+      "type": "object",
+      "properties": {},
+      "additionalProperties": false,
+      "required": []
+    }
+  },
+  "get-cities": {
+    "method": "GET",
+    "path": "/v2/GetCities",
+    "query": [
+      "shippingMethod",
+      "countryCode",
+      "searchValue"
+    ],
+    "parameters": [],
+    "schema": {
+      "type": "object",
+      "properties": {
+        "shippingMethod": {
+          "type": "integer",
+          "enum": [
+            1,
+            2
+          ]
+        },
+        "countryCode": {
+          "type": "string"
+        },
+        "searchValue": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "shippingMethod",
+        "countryCode"
+      ]
+    }
+  },
+  "request-pickup": {
+    "method": "GET",
+    "path": "/v2/RequestPickup",
+    "query": [
+      "ShippingMethod"
+    ],
+    "parameters": [],
+    "schema": {
+      "type": "object",
+      "properties": {
+        "ShippingMethod": {
+          "type": "integer",
+          "enum": [
+            1,
+            2
+          ]
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "ShippingMethod"
+      ]
+    }
+  },
+  "get-shipping-order-list": {
+    "method": "GET",
+    "path": "/v2/GetShippingOrderList",
+    "query": [
+      "ShippingMethod",
+      "orderStatus",
+      "start",
+      "length"
+    ],
+    "parameters": [],
+    "schema": {
+      "type": "object",
+      "properties": {
+        "ShippingMethod": {
+          "type": "integer",
+          "enum": [
+            1,
+            2
+          ]
+        },
+        "orderStatus": {
+          "type": "integer",
+          "enum": [
+            0,
+            1,
+            2,
+            3,
+            4
+          ]
+        },
+        "start": {
+          "type": "integer"
+        },
+        "length": {
+          "type": "integer"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "ShippingMethod",
+        "orderStatus"
+      ]
+    }
+  },
+  "calculate-shipping-charge": {
+    "method": "POST",
+    "path": "/v2/CalculateShippingCharge",
+    "query": [],
+    "parameters": [],
+    "schema": {
+      "type": "object",
+      "required": [
+        "ShippingMethod",
+        "CityName",
+        "CountryCode",
+        "Items"
+      ],
+      "properties": {
+        "ShippingMethod": {
+          "type": "integer",
+          "enum": [
+            1,
+            2
+          ]
+        },
+        "Items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "ProductName": {
+                "type": "string"
+              },
+              "Description": {
+                "type": "string"
+              },
+              "Weight": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 100
+              },
+              "Width": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 200
+              },
+              "Height": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 160
+              },
+              "Depth": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 200
+              },
+              "Quantity": {
+                "type": "integer"
+              },
+              "UnitPrice": {
+                "type": "number"
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "CityName": {
+          "type": "string"
+        },
+        "PostalCode": {
+          "type": "string"
+        },
+        "CountryCode": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "update-shipping-status": {
+    "method": "POST",
+    "path": "/v2/UpdateShippingStatus",
+    "query": [],
+    "parameters": [],
+    "schema": {
+      "type": "object",
+      "required": [
+        "ShippingMethod"
+      ],
+      "properties": {
+        "ShippingMethod": {
+          "type": "integer",
+          "enum": [
+            1,
+            2
+          ]
+        },
+        "InvoiceNumbers": {
+          "type": "array",
+          "items": {
+            "type": "integer"
+          }
+        },
+        "OrderStatusChangedTo": {
+          "type": "integer",
+          "enum": [
+            0,
+            1,
+            2,
+            3,
+            4
+          ]
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "cancel-token": {
+    "method": "POST",
+    "path": "/v2/CancelToken",
+    "query": [
+      "Token"
+    ],
+    "parameters": [],
+    "schema": {
+      "type": "object",
+      "properties": {
+        "Token": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "Token"
+      ]
+    }
+  },
+  "register-apple-pay-domain": {
+    "method": "POST",
+    "path": "/v2/RegisterApplePayDomain",
+    "query": [],
+    "parameters": [],
+    "schema": {
+      "type": "object",
+      "required": [
+        "DomainName"
+      ],
+      "properties": {
+        "DomainName": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "get-banks": {
+    "method": "GET",
+    "path": "/v2/GetBanks",
+    "query": [],
+    "parameters": [],
+    "schema": {
+      "type": "object",
+      "properties": {},
+      "additionalProperties": false,
+      "required": []
+    }
+  },
+  "get-currencies-exchange-list": {
+    "method": "GET",
+    "path": "/v2/GetCurrenciesExchangeList",
+    "query": [],
+    "parameters": [],
+    "schema": {
+      "type": "object",
+      "properties": {},
+      "additionalProperties": false,
+      "required": []
+    }
+  },
+  "get-deposited-invoices": {
+    "method": "POST",
+    "path": "/v2/GetDepositedInvoices",
+    "query": [],
+    "parameters": [],
+    "schema": {
+      "type": "object",
+      "required": [
+        "DepositReference"
+      ],
+      "properties": {
+        "DepositReference": {
+          "type": "string"
+        },
+        "Type": {
+          "type": "string",
+          "enum": [
+            "Vendor",
+            "Supplier"
+          ]
+        },
+        "SupplierCode": {
+          "type": "integer"
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "get-webhooks": {
+    "method": "POST",
+    "path": "/v2/GetWebhooks",
+    "query": [],
+    "parameters": [],
+    "schema": {
+      "type": "object",
+      "properties": {
+        "Start": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "End": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "Page": {
+          "type": "integer"
+        },
+        "EventType": {
+          "type": "string",
+          "enum": [
+            "TransactionsStatusChanged",
+            "RefundStatusChanged",
+            "RecurringStatusChanged",
+            "BalanceTransferred",
+            "SupplierStatusChanged",
+            "DisputeStatusChanged",
+            "PAYMENT_STATUS_CHANGED",
+            "REFUND_STATUS_CHANGED",
+            "RECURRING_UPDATES",
+            "BALANCE_TRANSFERRED",
+            "SUPPLIER_STATUS_CHANGED",
+            "DISPUTE_STATUS_CHANGED"
+          ]
+        },
+        "Status": {
+          "type": "string",
+          "enum": [
+            "Waiting",
+            "Running",
+            "Succeeded",
+            "Failed"
+          ]
+        },
+        "Key": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "KeyType": {
+          "type": "string",
+          "enum": [
+            "InvoiceId",
+            "CustomerReference",
+            "WebhookReference"
+          ]
+        }
+      },
+      "additionalProperties": false,
+      "required": []
+    }
+  },
+  "initiate-session": {
+    "method": "POST",
+    "path": "/v2/InitiateSession",
+    "query": [],
+    "parameters": [],
+    "schema": {
+      "type": "object",
+      "properties": {
+        "CustomerIdentifier": {
+          "type": "string"
+        },
+        "SaveToken": {
+          "type": "boolean"
+        },
+        "IsRecurring": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false,
+      "required": []
+    }
+  },
+  "update-session": {
+    "method": "POST",
+    "path": "/v2/UpdateSession",
+    "query": [],
+    "parameters": [],
+    "schema": {
+      "type": "object",
+      "required": [
+        "SessionId",
+        "Token",
+        "TokenType"
+      ],
+      "properties": {
+        "SessionId": {
+          "type": "string"
+        },
+        "Token": {
+          "type": "string"
+        },
+        "TokenType": {
+          "type": "string",
+          "enum": [
+            "mftoken",
+            "googlepay",
+            "applepay"
+          ]
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}

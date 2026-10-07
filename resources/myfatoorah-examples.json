@@ -1,0 +1,196 @@
+{
+    "invoices.create": {
+        "Order": {
+            "Amount": 10,
+            "Currency": "KWD"
+        },
+        "Suppliers": [
+            {
+                "SupplierCode": 7,
+                "InvoiceShare": 8
+            }
+        ]
+    },
+    "invoices.get": {
+        "InvoiceId": "100"
+    },
+    "invoices.find": {
+        "externalIdentifier": "order-7"
+    },
+    "sessions.initiate": {
+        "CustomerIdentifier": "customer1"
+    },
+    "sessions.update": {
+        "SessionId": "session1",
+        "Token": "encrypted-wallet-token",
+        "TokenType": "applepay"
+    },
+    "payments.execute": {
+        "SessionId": "session1",
+        "InvoiceValue": 10
+    },
+    "payments.get": {
+        "paymentId": "100"
+    },
+    "payments.update": {
+        "paymentId": "payment-business",
+        "OperationType": "CAPTURE",
+        "Amount": 10
+    },
+    "payment-methods.list": {},
+    "sessions.create": {
+        "PaymentMode": "COMPLETE_PAYMENT",
+        "Order": {
+            "Amount": 10
+        }
+    },
+    "sessions.get": {
+        "sessionId": "session1"
+    },
+    "customers.get": {
+        "Reference": "customer1"
+    },
+    "tokens.cancel": {
+        "Token": "token1"
+    },
+    "apple-pay.register": {
+        "DomainName": "checkout.example.test"
+    },
+    "refunds.create": {
+        "PaymentId": "payment-business",
+        "Amount": 1
+    },
+    "refunds.get": {
+        "refundId": "refund1"
+    },
+    "subscriptions.create": {
+        "InvoiceValue": 10,
+        "PaymentMethodId": 2,
+        "RecurringModel": {
+            "RecurringType": "Monthly",
+            "Iteration": 12
+        },
+        "consent_reference": "signed-contract-17"
+    },
+    "subscriptions.list": {},
+    "subscriptions.cancel": {
+        "recurringId": "RECUR1"
+    },
+    "subscriptions.retry": {
+        "recurringId": "RECUR1"
+    },
+    "suppliers.create": {
+        "SupplierName": "Example supplier",
+        "Mobile": "96512345678",
+        "Email": "supplier@example.test"
+    },
+    "suppliers.update": {
+        "SupplierName": "Example supplier",
+        "Mobile": "96512345678",
+        "Email": "supplier@example.test",
+        "SupplierCode": 7
+    },
+    "suppliers.commissions": {
+        "SupplierCode": 7,
+        "SupplierCommissions": [
+            {
+                "PaymentMethodId": 2,
+                "CommissionPercentage": 2
+            }
+        ]
+    },
+    "suppliers.upload": {
+        "SupplierCode": 7,
+        "FileType": 5,
+        "FileUpload": {
+            "FileName": "document.pdf",
+            "MediaType": "application/pdf",
+            "Buffer": "JVBERi0xLjQK"
+        }
+    },
+    "suppliers.list": {},
+    "suppliers.get": {
+        "SupplierCode": 7
+    },
+    "suppliers.deposits": {
+        "SupplierCode": 7
+    },
+    "suppliers.documents": {
+        "SupplierCode": 7
+    },
+    "suppliers.dashboard": {
+        "SupplierCode": 7
+    },
+    "transfers.create": {
+        "SupplierCode": 7,
+        "TransferAmount": 5,
+        "TransferType": "push"
+    },
+    "shipping.create": {
+        "CustomerName": "Test customer",
+        "InvoiceValue": 10,
+        "NotificationOption": "LNK",
+        "ShippingMethod": 1,
+        "ShippingConsignee": {
+            "PersonName": "Test customer",
+            "Mobile": "96512345678",
+            "LineAddress": "Street 1",
+            "CityName": "Kuwait",
+            "CountryCode": "KW"
+        },
+        "InvoiceItems": [
+            {
+                "ItemName": "Book",
+                "Quantity": 1,
+                "UnitPrice": 10,
+                "Weight": 1,
+                "Width": 10,
+                "Height": 10,
+                "Depth": 10
+            }
+        ]
+    },
+    "shipping.countries": {},
+    "shipping.cities": {
+        "shippingMethod": 1,
+        "countryCode": "KW"
+    },
+    "shipping.quote": {
+        "ShippingMethod": 1,
+        "CountryCode": "KW",
+        "CityName": "Kuwait",
+        "Items": [
+            {
+                "Weight": 1,
+                "Width": 10,
+                "Height": 10,
+                "Depth": 10,
+                "Quantity": 1,
+                "UnitPrice": 10
+            }
+        ]
+    },
+    "shipping.orders": {
+        "ShippingMethod": 2,
+        "orderStatus": 1
+    },
+    "shipping.update": {
+        "ShippingMethod": 1,
+        "InvoiceNumbers": [
+            89
+        ],
+        "OrderStatusChangedTo": 1
+    },
+    "shipping.pickup": {
+        "ShippingMethod": 1
+    },
+    "banks.list": {},
+    "currencies.list": {},
+    "deposits.invoices": {
+        "DepositReference": "deposit1"
+    },
+    "webhooks.search": {
+        "Page": 1,
+        "Status": "Failed"
+    }
+}

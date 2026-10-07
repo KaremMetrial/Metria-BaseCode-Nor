@@ -26,6 +26,11 @@ use Illuminate\Http\JsonResponse;
  */
 final class GovernorateController extends Controller
 {
+    /**
+     * List all governorates.
+     *
+     * Requires the country_id query parameter. Includes inactive records and all translations. This list is not paginated.
+     */
     public function index(IndexGovernorateRequest $request): JsonResponse
     {
         $governorates = Governorate::query()
@@ -37,6 +42,11 @@ final class GovernorateController extends Controller
         return ApiResponse::success(AdminGovernorateResource::collection($governorates));
     }
 
+    /**
+     * Get a governorate for editing.
+     *
+     * Returns administrative fields and all translations, including inactive records.
+     */
     public function show(Governorate $governorate): JsonResponse
     {
         return ApiResponse::success(
@@ -44,6 +54,11 @@ final class GovernorateController extends Controller
         );
     }
 
+    /**
+     * Create a governorate.
+     *
+     * Requires an English name in translations.en. Arabic is optional; every supplied locale object must include its name. Only en and ar translation keys are accepted.
+     */
     public function store(StoreGovernorateRequest $request, CreateGovernorate $action): JsonResponse
     {
         $governorate = $action->execute($request->validated());
@@ -55,6 +70,11 @@ final class GovernorateController extends Controller
         );
     }
 
+    /**
+     * Update a governorate.
+     *
+     * Partial update: omit unchanged fields. When providing a locale object, include its name. Parent changes must preserve the location hierarchy.
+     */
     public function update(
         UpdateGovernorateRequest $request,
         Governorate $governorate,
@@ -68,6 +88,11 @@ final class GovernorateController extends Controller
         );
     }
 
+    /**
+     * Delete a governorate.
+     *
+     * Returns a null data payload on success. Referenced locations cannot be deleted and return 409 RESOURCE_IN_USE.
+     */
     public function destroy(
         DestroyGovernorateRequest $request,
         Governorate $governorate,

@@ -9,6 +9,7 @@ use App\Enums\ErrorCode;
 use App\Enums\PaymentStatus;
 use App\Enums\WalletTransactionType;
 use App\Exceptions\DomainException;
+use App\Exceptions\RefundRejectedException;
 use App\Models\Payment;
 use App\Models\PaymentRefund;
 use App\Models\User;
@@ -63,20 +64,27 @@ final class RefundPayment
         if ($refund->status !== 'pending' || $refund->provider_reference !== null) {
             return $refund;
         }
-        if ($refund->created_at->lt(now()->subHours(23))) {
+        if ($refund->created_at->lt(now()->subMinutes((int) config('payments.providers.'.$payment->provider.'.idempotency_minutes', 1380)))) {
             throw new DomainException(ErrorCode::RECONCILIATION_REQUIRED);
         }
         // Timeouts leave the reservation pending. Retrying uses the same provider key.
-        $result = $gateway->refund($payment, $refund);
+        try {
+            $result = $gateway->refund($payment, $refund);
+        } catch (RefundRejectedException) {
+            return $this->settle($refund, null, 'failed');
+        }
 
         return $this->settle($refund, $result['reference'], $result['status']);
     }
 
-    public function settle(PaymentRefund $refund, string $reference, string $status): PaymentRefund
+    public function settle(PaymentRefund $refund, ?string $reference, string $status): PaymentRefund
     {
         return DB::transaction(function () use ($refund, $reference, $status): PaymentRefund {
             $payment = Payment::query()->whereKey($refund->payment_id)->lockForUpdate()->firstOrFail();
             $locked = PaymentRefund::query()->whereKey($refund->id)->lockForUpdate()->firstOrFail();
+            if ($reference === null && $status !== 'failed') {
+                throw new DomainException(ErrorCode::INVALID_WEBHOOK);
+            }
             if ($locked->provider_reference !== null && $locked->provider_reference !== $reference) {
                 throw new DomainException(ErrorCode::INVALID_WEBHOOK);
             }

@@ -6,6 +6,7 @@ use App\Exceptions\Localization\UnsupportedLocaleException;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Symfony\Component\HttpFoundation\AcceptHeader;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
@@ -26,24 +27,26 @@ final class SetLocale
     public function handle(Request $request, Closure $next): Response
     {
         app()->setLocale((string) config('languages.default', 'en'));
-        if (! $request->is('api/*')) {
+        if (! $request->is('api/*') && ! $request->expectsJson()) {
             return $next($request);
         }
         app()->setLocale($this->resolve($request));
 
-        return $next($request);
+        $response = $next($request);
+        $response->headers->set('Content-Language', app()->getLocale());
+
+        return $response;
     }
 
     private function resolve(Request $request): string
     {
         /** @var list<string> $supported */
         $supported = array_keys(config('languages.supported', []));
-        $default = (string) config('languages.default', config('app.locale'));
-
         $explicit = $request->query('locale')
             ?? $request->header((string) config('languages.header', 'X-Locale'));
 
         if ($explicit !== null && ! is_string($explicit)) {
+            app()->setLocale($this->fallbackLocale($request, $supported));
             throw UnsupportedLocaleException::make('');
         }
 
@@ -51,10 +54,24 @@ final class SetLocale
             $normalized = strtolower($explicit);
 
             if (! in_array($normalized, $supported, true)) {
+                app()->setLocale($this->fallbackLocale($request, $supported));
                 throw UnsupportedLocaleException::make($explicit);
             }
 
             return $normalized;
+        }
+
+        return $this->fallbackLocale($request, $supported);
+    }
+
+    /**
+     * @param  list<string>  $supported
+     */
+    private function fallbackLocale(Request $request, array $supported): string
+    {
+        $header = strtolower($request->header((string) config('languages.header', 'X-Locale'), ''));
+        if (in_array($header, $supported, true)) {
+            return $header;
         }
 
         $userLocale = $this->resolveUserLocale($request, $supported);
@@ -63,8 +80,11 @@ final class SetLocale
             return $userLocale;
         }
 
-        foreach ($request->getLanguages() as $candidate) {
-            $normalized = strtolower((string) $candidate);
+        foreach (AcceptHeader::fromString($request->header('Accept-Language', ''))->all() as $candidate) {
+            if ($candidate->getQuality() <= 0) {
+                continue;
+            }
+            $normalized = strtolower($candidate->getValue());
 
             if (in_array($normalized, $supported, true)) {
                 return $normalized;
@@ -78,7 +98,7 @@ final class SetLocale
             }
         }
 
-        return $default;
+        return (string) config('languages.default', config('app.locale'));
     }
 
     /**
@@ -86,7 +106,7 @@ final class SetLocale
      */
     private function resolveUserLocale(Request $request, array $supported): ?string
     {
-        // This middleware runs in the `api` group, i.e. *before* route
+        // This middleware runs globally, i.e. *before* route
         // middleware, so `auth:sanctum` has not yet made `sanctum` the default
         // guard. Resolving through it explicitly means a token-authenticated
         // user still gets their saved language on the very first request.

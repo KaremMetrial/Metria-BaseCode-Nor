@@ -11,6 +11,11 @@ use Illuminate\Http\JsonResponse;
 
 final class AdminLoginController extends Controller
 {
+    /**
+     * Sign in as an administrator.
+     *
+     * Returns a bearer token and the administrator profile. Invalid credentials or a disabled account return 401.
+     */
     public function __invoke(AdminLoginRequest $request, LoginAdmin $action): JsonResponse
     {
         $result = $action->execute($request->validated('email'), $request->validated('password'));

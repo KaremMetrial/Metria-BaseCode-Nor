@@ -6,6 +6,7 @@ use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Route;
 use Laravel\Sanctum\Sanctum;
+use PHPUnit\Framework\Attributes\TestWith;
 use Tests\TestCase;
 
 class LocaleMiddlewareTest extends TestCase
@@ -109,5 +110,55 @@ class LocaleMiddlewareTest extends TestCase
         $this->getJson('/api/_test/locale-auth')
             ->assertOk()
             ->assertJson(['locale' => config('languages.default')]);
+    }
+
+    #[TestWith(['?locale=fr', ['X-Locale' => 'ar']])]
+    #[TestWith(['?locale[]=ar', ['Accept-Language' => 'ar-EG']])]
+    #[TestWith(['', ['X-Locale' => 'fr', 'Accept-Language' => 'ar']])]
+    public function test_unsupported_locale_returns_422_in_the_next_supported_language(string $query, array $headers): void
+    {
+        $this->getJson('/api/_test/locale'.$query, $headers)
+            ->assertUnprocessable()->assertHeader('Content-Language', 'ar')
+            ->assertJsonPath('message', 'اللغة المطلوبة غير مدعومة.')
+            ->assertJsonPath('errors.locale.0', 'اللغة المطلوبة غير مدعومة.');
+    }
+
+    public function test_unsupported_locale_uses_the_authenticated_users_language(): void
+    {
+        Sanctum::actingAs(User::factory()->client()->create(['locale' => 'ar']));
+
+        $this->getJson('/api/_test/locale-auth?locale=fr', ['Accept-Language' => 'en'])
+            ->assertUnprocessable()->assertHeader('Content-Language', 'ar')
+            ->assertJsonPath('message', 'اللغة المطلوبة غير مدعومة.');
+    }
+
+    public function test_locale_resets_between_requests_and_query_wins_over_header(): void
+    {
+        $this->getJson('/api/_test/locale?locale=AR', ['X-Locale' => 'en'])
+            ->assertOk()->assertHeader('Content-Language', 'ar')->assertJsonPath('locale', 'ar');
+        $this->getJson('/api/_test/locale')
+            ->assertOk()->assertHeader('Content-Language', 'en')->assertJsonPath('locale', 'en');
+    }
+
+    public function test_json_errors_outside_the_api_prefix_use_the_requested_locale(): void
+    {
+        $this->getJson('/missing-web-route', ['X-Locale' => 'ar'])
+            ->assertNotFound()->assertHeader('Content-Language', 'ar')
+            ->assertJsonPath('message', 'العنصر المطلوب غير موجود.');
+    }
+
+    public function test_language_negotiation_ignores_languages_with_zero_quality(): void
+    {
+        $this->getJson('/api/_test/locale', ['Accept-Language' => 'fr;q=1,ar;q=0'])
+            ->assertOk()->assertHeader('Content-Language', 'en')->assertJsonPath('locale', 'en');
+    }
+
+    public function test_a_real_bearer_token_applies_the_saved_language_to_errors(): void
+    {
+        $user = User::factory()->client()->create(['locale' => 'ar']);
+        $token = $user->createToken('localization-test')->plainTextToken;
+
+        $this->getJson('/api/v1/no-such-route', ['Authorization' => 'Bearer '.$token, 'Accept-Language' => 'en'])
+            ->assertNotFound()->assertHeader('Content-Language', 'ar')->assertJsonPath('message', 'العنصر المطلوب غير موجود.');
     }
 }

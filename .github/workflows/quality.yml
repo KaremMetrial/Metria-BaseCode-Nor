@@ -79,6 +79,8 @@ jobs:
       - run: php artisan test --compact --log-junit test-results/phpunit.xml
       - run: php artisan migrate:fresh --seed --force --no-interaction
       - run: php artisan db:seed --force --no-interaction
+      - name: Export and validate the complete OpenAPI specification
+        run: php artisan scramble:export --path=test-results/openapi.json --fail-on-unknown --no-interaction
       - run: npm ci
       - run: npm --prefix docker/socketio ci
       - run: npm audit
@@ -153,7 +155,7 @@ jobs:
       - uses: shivammathur/setup-php@b604ade2a87db23f8871b7182e69ec5e75effb45 # v2
         with:
           php-version: '8.5'
-          extensions: mbstring, intl, pdo_mysql, bcmath
+          extensions: mbstring, intl, pdo_mysql, pdo_sqlite, bcmath
           coverage: none
       - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with:

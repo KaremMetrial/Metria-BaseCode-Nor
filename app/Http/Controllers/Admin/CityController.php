@@ -22,6 +22,11 @@ use Illuminate\Http\JsonResponse;
  */
 final class CityController extends Controller
 {
+    /**
+     * List all cities.
+     *
+     * Requires the governorate_id query parameter. Includes inactive records and all translations. This list is not paginated.
+     */
     public function index(IndexCityRequest $request): JsonResponse
     {
         $cities = City::query()
@@ -33,11 +38,21 @@ final class CityController extends Controller
         return ApiResponse::success(AdminCityResource::collection($cities));
     }
 
+    /**
+     * Get a city for editing.
+     *
+     * Returns administrative fields and all translations, including inactive records.
+     */
     public function show(City $city): JsonResponse
     {
         return ApiResponse::success(new AdminCityResource($city->load('translations')));
     }
 
+    /**
+     * Create a city.
+     *
+     * Requires an English name in translations.en. Arabic is optional; every supplied locale object must include its name. Only en and ar translation keys are accepted.
+     */
     public function store(StoreCityRequest $request, CreateCity $action): JsonResponse
     {
         $city = $action->execute($request->validated());
@@ -49,6 +64,11 @@ final class CityController extends Controller
         );
     }
 
+    /**
+     * Update a city.
+     *
+     * Partial update: omit unchanged fields. When providing a locale object, include its name. Parent changes must preserve the location hierarchy.
+     */
     public function update(UpdateCityRequest $request, City $city, UpdateCity $action): JsonResponse
     {
         $updated = $action->execute($city, $request->validated());
@@ -59,6 +79,11 @@ final class CityController extends Controller
         );
     }
 
+    /**
+     * Delete a city.
+     *
+     * Returns a null data payload on success. Referenced locations cannot be deleted and return 409 RESOURCE_IN_USE.
+     */
     public function destroy(DestroyCityRequest $request, City $city, DeleteCity $action): JsonResponse
     {
         $action->execute($city);

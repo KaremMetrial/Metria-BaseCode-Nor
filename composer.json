@@ -11,6 +11,7 @@
     "require": {
         "php": "^8.3",
         "astrotomic/laravel-translatable": "^11.17",
+        "dedoc/scramble": "^0.13.47",
         "giggsey/libphonenumber-for-php": "^9.0",
         "google/auth": "^1.55",
         "laravel/framework": "^13.17",

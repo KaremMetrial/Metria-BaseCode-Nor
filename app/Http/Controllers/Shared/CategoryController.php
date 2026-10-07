@@ -11,6 +11,11 @@ use Illuminate\Http\JsonResponse;
 
 class CategoryController extends Controller
 {
+    /**
+     * Search public categories.
+     *
+     * Returns active categories whose entire ancestor chain is active. Supports keyword, parent, sorting and pagination filters.
+     */
     public function index(SearchCategoryRequest $request): JsonResponse
     {
         $q = Category::query()->visible()->with('translations');
@@ -24,6 +29,11 @@ class CategoryController extends Controller
         return ApiResponse::paginated(CategoryResource::class, $q->orderBy($request->validated('sort', 'sort_order'))->orderBy('id')->paginate($request->integer('per_page', 25)));
     }
 
+    /**
+     * Get a public category.
+     *
+     * Returns one visible category in the requested language. Hidden categories and categories below hidden ancestors return 404.
+     */
     public function show(int $category): JsonResponse
     {
         return ApiResponse::success(new CategoryResource(Category::query()->visible()->with('translations')->findOrFail($category)));

@@ -3,10 +3,23 @@
 namespace Tests\Feature\Localization;
 
 use Illuminate\Support\Arr;
+use Illuminate\Support\Facades\Lang;
 use Tests\TestCase;
 
 class TranslationParityTest extends TestCase
 {
+    public function test_framework_validation_messages_exist_in_both_languages_without_fallback(): void
+    {
+        $framework = require base_path('vendor/laravel/framework/src/Illuminate/Translation/lang/en/validation.php');
+        unset($framework['attributes'], $framework['custom']);
+
+        foreach (array_keys(Arr::dot($framework)) as $key) {
+            foreach (['en', 'ar'] as $locale) {
+                $this->assertTrue(Lang::hasForLocale('validation.'.$key, $locale), "Missing {$locale}: validation.{$key}");
+            }
+        }
+    }
+
     public function test_recursive_translation_keys_and_placeholders_match(): void
     {
         $en = $this->catalog('en');

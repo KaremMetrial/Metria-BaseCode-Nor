@@ -34,6 +34,10 @@ enum AuditAction: string
     case PAYMENT_REFUND_REQUESTED = 'payment.refund_requested';
     case PAYMENT_REFUNDED = 'payment.refunded';
 
+    case MYFATOORAH_OPERATION_RESOLVED = 'myfatoorah.operation_resolved';
+
+    case MYFATOORAH_OPERATION = 'myfatoorah.operation';
+
     /**
      * @return list<string>
      */

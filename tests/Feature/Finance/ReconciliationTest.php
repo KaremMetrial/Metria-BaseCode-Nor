@@ -13,6 +13,7 @@ use App\Models\User;
 use App\Models\Wallet;
 use App\Services\Payments\StripeGateway;
 use Database\Seeders\RbacSeeder;
+use GuzzleHttp\Promise\PromiseInterface;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
@@ -165,5 +166,47 @@ class ReconciliationTest extends TestCase
         $this->assertSame(600, Wallet::findOrFail($payment->wallet_id)->balance);
         $this->assertDatabaseCount('wallet_transactions', 2);
         Http::assertSentCount(1);
+    }
+
+    public function test_reconciliation_rotates_pending_refunds_and_continues_after_provider_failure(): void
+    {
+        $this->freezeTime();
+        $payment = $this->payment();
+        Http::fake(['https://api.stripe.com/v1/payment_intents/pi_reconcile' => Http::response($this->snapshot($payment))]);
+        app(ReconcilePayment::class)->execute($payment);
+        $this->seed(RbacSeeder::class);
+        $admin = User::factory()->admin()->create();
+        $admin->assignRole('finance-admin');
+        Http::fake(['https://api.stripe.com/v1/refunds' => fn ($request) => Http::response(['id' => 're_'.$request['metadata']['refund_uuid'], 'status' => 'pending'])]);
+        $refunds = [];
+        for ($index = 0; $index < 26; $index++) {
+            $refunds[] = app(RefundPayment::class)->execute($admin, $payment->fresh(), 1, 'refund-'.$index);
+        }
+        Http::assertSentCount(26);
+        $first = $refunds[0];
+        $last = $refunds[25];
+        Http::fake(['https://api.stripe.com/v1/refunds/*' => function ($request) use ($first, $last): PromiseInterface {
+            $reference = basename($request->url());
+            if ($reference === $first->provider_reference) {
+                return Http::response(['error' => ['type' => 'api_error']], 503);
+            }
+            $refund = PaymentRefund::query()->where('provider_reference', $reference)->firstOrFail();
+
+            return Http::response(['id' => $reference, 'payment_intent' => 'pi_reconcile', 'amount' => 1, 'currency' => 'egp', 'livemode' => false, 'status' => $refund->id === $last->id ? 'succeeded' : 'pending', 'metadata' => ['refund_uuid' => $refund->uuid]]);
+        }]);
+        $this->travel(1)->minutes();
+
+        $firstRun = app(ReconcilePayment::class)->execute($payment->fresh());
+        $this->travel(1)->minutes();
+        $secondRun = app(ReconcilePayment::class)->execute($payment->fresh());
+
+        $this->assertSame(['payment_id' => $payment->id, 'settled' => 0, 'unresolved' => 25], $firstRun);
+        $this->assertSame(['payment_id' => $payment->id, 'settled' => 1, 'unresolved' => 24], $secondRun);
+        $this->assertSame('succeeded', $last->fresh()->status);
+        $this->assertSame('pending', $first->fresh()->status);
+        $this->assertSame(1, $payment->fresh()->refunded_amount);
+        $this->assertSame(974, Wallet::findOrFail($payment->wallet_id)->balance);
+        Http::assertSentCount(50);
+        Http::assertSent(fn ($request) => $request->url() === 'https://api.stripe.com/v1/refunds/'.$last->provider_reference);
     }
 }

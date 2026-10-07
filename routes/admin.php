@@ -40,6 +40,7 @@ Route::prefix('admin')->as('admin.')->group(function (): void {
             Route::post('profile/phone/verify', [PhoneChangeController::class, 'verify'])->middleware('throttle:otp_verify')->name('profile.phone.verify');
             Route::post('realtime/token', SocketTokenController::class)->middleware('throttle:login')->name('realtime.token');
             require base_path('routes/admin/locations.php');
+            require base_path('routes/admin/myfatoorah.php');
         });
     });
 });

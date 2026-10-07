@@ -3,6 +3,7 @@
 namespace Tests\Feature\Finance;
 
 use App\Actions\Payments\CreatePayment;
+use App\Actions\Payments\ProcessWebhook;
 use App\Actions\Payments\RefundPayment;
 use App\Enums\PaymentStatus;
 use App\Exceptions\DomainException;
@@ -166,5 +167,83 @@ class PaymentFlowTest extends TestCase
         $this->assertSame(10000, Wallet::find($p->wallet_id)->balance);
         $this->assertSame(0, $p->fresh()->refunded_amount);
         $this->assertDatabaseCount('wallet_transactions', 3);
+    }
+
+    public function test_rejected_refund_releases_reservation_once_without_a_provider_reference(): void
+    {
+        $payment = $this->createPayment();
+        $this->webhook($payment)->assertOk();
+        $this->seed(RbacSeeder::class);
+        $admin = User::factory()->admin()->create();
+        $admin->assignRole('finance-admin');
+        Http::fake(['https://api.stripe.com/v1/refunds' => Http::response(['error' => ['type' => 'invalid_request_error', 'code' => 'amount_too_large']], 400)]);
+        $action = app(RefundPayment::class);
+
+        $refund = $action->execute($admin, $payment->fresh(), 4000, 'rejected-refund');
+        $replayed = $action->execute($admin, $payment->fresh(), 4000, 'rejected-refund');
+
+        $this->assertSame($refund->id, $replayed->id);
+        $this->assertDatabaseHas('payment_refunds', ['id' => $refund->id, 'status' => 'failed', 'provider_reference' => null]);
+        $this->assertSame(10000, Wallet::findOrFail($payment->wallet_id)->balance);
+        $this->assertSame(0, $payment->fresh()->refunded_amount);
+        $this->assertDatabaseCount('wallet_transactions', 3);
+        Http::assertSentCount(1);
+    }
+
+    public function test_uncertain_refund_errors_preserve_reserved_funds(): void
+    {
+        $payment = $this->createPayment();
+        $this->webhook($payment)->assertOk();
+        $this->seed(RbacSeeder::class);
+        $admin = User::factory()->admin()->create();
+        $admin->assignRole('finance-admin');
+        $responses = [
+            Http::response(['error' => ['type' => 'api_error']], 500),
+            Http::response(['error' => ['type' => 'invalid_request_error', 'code' => 'idempotency_key_in_use']], 400),
+            Http::response(['error' => ['type' => 'idempotency_error']], 400),
+            Http::response(['error' => ['type' => 'invalid_request_error']], 400, ['Stripe-Should-Retry' => 'true']),
+            Http::response(['error' => ['type' => 'invalid_request_error']], 429),
+            Http::response('Untrusted gateway response', 400),
+            Http::response(['error' => ['type' => 'invalid_request_error']], 401),
+        ];
+        foreach ($responses as $response) {
+            Http::fake(['https://api.stripe.com/v1/refunds' => $response]);
+            try {
+                app(RefundPayment::class)->execute($admin, $payment->fresh(), 4000, 'uncertain-refund');
+                $this->fail('Expected an uncertain provider failure.');
+            } catch (DomainException $exception) {
+                $this->assertSame('PROVIDER_UNAVAILABLE', $exception->errorCode()->value);
+            }
+            $this->assertSame(6000, Wallet::findOrFail($payment->wallet_id)->balance);
+            $this->assertDatabaseHas('payment_refunds', ['payment_id' => $payment->id, 'status' => 'pending']);
+            $this->assertDatabaseCount('wallet_transactions', 2);
+            Http::assertSentCount(1);
+        }
+    }
+
+    public function test_refund_webhook_without_a_provider_reference_cannot_release_funds(): void
+    {
+        $payment = $this->createPayment();
+        $this->webhook($payment)->assertOk();
+        $this->seed(RbacSeeder::class);
+        $admin = User::factory()->admin()->create();
+        $admin->assignRole('finance-admin');
+        Http::fake(['https://api.stripe.com/v1/refunds' => Http::response(['id' => 're_pending', 'status' => 'pending'])]);
+        $refund = app(RefundPayment::class)->execute($admin, $payment->fresh(), 4000, 'pending-refund');
+
+        foreach ([null, ''] as $reference) {
+            try {
+                app(ProcessWebhook::class)->applyVerifiedEvent('stripe', ['id' => 'invalid-refund-event', 'type' => 'refund.updated', 'refund_uuid' => $refund->uuid, 'payment_reference' => 'pi_test', 'reference' => $reference, 'amount' => 4000, 'currency' => 'EGP', 'status' => 'failed']);
+                $this->fail('Expected an invalid webhook.');
+            } catch (DomainException $exception) {
+                $this->assertSame('INVALID_WEBHOOK', $exception->errorCode()->value);
+            }
+        }
+
+        $this->assertSame('pending', $refund->fresh()->status);
+        $this->assertSame(6000, Wallet::findOrFail($payment->wallet_id)->balance);
+        $this->assertDatabaseCount('wallet_transactions', 2);
+        $this->assertDatabaseCount('payment_webhook_events', 1);
+        Http::assertSentCount(1);
     }
 }

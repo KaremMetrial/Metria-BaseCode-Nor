@@ -16,6 +16,11 @@ use Illuminate\Http\JsonResponse;
 
 final class OtpController extends Controller
 {
+    /**
+     * Request a sign-in code.
+     *
+     * Send the selected country ID and a mobile phone number. Returns a challenge ID; the code is delivered by SMS and is never included in this response.
+     */
     public function request(OtpRequest $request, AuthenticationPhone $phones, OtpService $otp): JsonResponse
     {
         $data = $request->validated();
@@ -26,6 +31,11 @@ final class OtpController extends Controller
         return ApiResponse::success(['challenge_id' => $id], __('otp.sent'));
     }
 
+    /**
+     * Verify a sign-in code.
+     *
+     * Submit the same country and phone with the challenge ID and six-digit code. Creates an account when needed and returns its profile and bearer token. New vendors await administrator approval.
+     */
     public function verify(VerifyOtpRequest $request, VerifyPhoneLogin $action): JsonResponse
     {
         $result = $action->execute($request->validated(), UserType::from($request->route('actor_type')));

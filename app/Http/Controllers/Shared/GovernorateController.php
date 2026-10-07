@@ -19,6 +19,11 @@ use Illuminate\Http\JsonResponse;
  */
 final class GovernorateController extends Controller
 {
+    /**
+     * Get an available governorate.
+     *
+     * The governorate and its parent country must be active.
+     */
     public function show(int $governorate): JsonResponse
     {
         $model = $this->visible()
@@ -34,6 +39,11 @@ final class GovernorateController extends Controller
      * Deliberately unbounded by pagination: the whole point of this endpoint is
      * to populate one select element, and splitting it across pages would force
      * the client to page through a picker.
+     */
+    /**
+     * List a governorate’s cities.
+     *
+     * Returns active cities only when their governorate and country are active. The list is not paginated.
      */
     public function cities(int $governorate): JsonResponse
     {

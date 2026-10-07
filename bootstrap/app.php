@@ -24,6 +24,8 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        $middleware->trustProxies(headers: Request::HEADER_X_FORWARDED_FOR | Request::HEADER_X_FORWARDED_PROTO | Request::HEADER_X_FORWARDED_PORT);
+
         /*
          * Correlation id: global, not group-scoped.
          *
@@ -43,8 +45,7 @@ return Application::configure(basePath: dirname(__DIR__))
             ForceJsonResponse::class,
         ]);
 
-        // Locale resolution is in the group (not per-route) so public endpoints
-        // are localized too.
+        // Global locale resolution also covers public endpoints and routing failures.
 
         $middleware->alias([
             'actor' => EnsureUserType::class,

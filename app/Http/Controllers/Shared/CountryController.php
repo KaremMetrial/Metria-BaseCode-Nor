@@ -27,6 +27,11 @@ use Illuminate\Http\JsonResponse;
  */
 final class CountryController extends Controller
 {
+    /**
+     * List available countries.
+     *
+     * Returns all active countries, ordered for display. Use the ID and calling code for phone authentication.
+     */
     public function index(): JsonResponse
     {
         $countries = Country::query()
@@ -38,6 +43,11 @@ final class CountryController extends Controller
         return ApiResponse::success(CountryResource::collection($countries));
     }
 
+    /**
+     * Get an available country.
+     *
+     * Returns an active country in the requested language.
+     */
     public function show(int $country): JsonResponse
     {
         $model = Country::query()
@@ -50,6 +60,11 @@ final class CountryController extends Controller
 
     /**
      * The second step of the picker: the divisions of one country.
+     */
+    /**
+     * List a country’s governorates.
+     *
+     * Returns active governorates of an active country. The list is not paginated.
      */
     public function governorates(int $country): JsonResponse
     {

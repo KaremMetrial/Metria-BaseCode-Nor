@@ -17,6 +17,11 @@ use Illuminate\Http\JsonResponse;
  */
 final class CityController extends Controller
 {
+    /**
+     * Get an available city.
+     *
+     * The city and all its ancestors must be active. Includes coordinates when configured.
+     */
     public function show(int $city): JsonResponse
     {
         $model = $this->visible()

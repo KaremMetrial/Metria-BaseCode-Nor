@@ -2,6 +2,7 @@
 
 namespace App\Services\Operations;
 
+use App\Models\MyFatoorahOperation;
 use App\Models\NotificationDelivery;
 use App\Models\Payment;
 use App\Models\PaymentRefund;
@@ -12,7 +13,7 @@ use Illuminate\Support\Facades\Redis;
 final class ReadinessChecks
 {
     /** @return array<string, bool> No secrets or provider response bodies are returned. */
-    public function run(bool $connections = true, bool $sandboxPayments = false): array
+    public function run(bool $connections = true, bool $sandboxPayments = false, bool $deployment = false): array
     {
         $database = (string) config('database.default');
         $payment = config('payments.providers.'.config('payments.default'), []);
@@ -36,6 +37,10 @@ final class ReadinessChecks
             'routes_cached' => app()->routesAreCached(),
             'runtime_directories_writable' => is_writable(storage_path('logs')) && is_writable(storage_path('framework')) && is_writable(base_path('bootstrap/cache')),
         ];
+        if (config('payments.default') === 'myfatoorah') {
+            $currencies = ['KWT' => 'KWD', 'BHR' => 'BHD', 'OMN' => 'OMR', 'JOR' => 'JOD', 'SAU' => 'SAR', 'ARE' => 'AED', 'QAT' => 'QAR', 'EGY' => 'EGP'];
+            $checks['payments_configured'] = $checks['payments_configured'] && isset($currencies[$payment['country'] ?? '']) && $currencies[$payment['country']] === ($payment['currency'] ?? null);
+        }
         if (config('notifications.email_enabled')) {
             $checks['email_transport'] = ! in_array(config('mail.default'), ['log', 'array'], true);
         }
@@ -46,11 +51,14 @@ final class ReadinessChecks
             try {
                 DB::select('SELECT 1');
                 $checks['database_reachable'] = true;
-                $checks['no_failed_jobs'] = DB::table('failed_jobs')->count() === 0;
-                $checks['outbox_not_stalled'] = ! UserNotification::query()->whereNull('published_at')->where('created_at', '<', now()->subMinutes(10))->exists();
-                $checks['channel_delivery_healthy'] = ! NotificationDelivery::query()->where('status', 'failed')->orWhere(fn ($q) => $q->where('status', 'pending')->where('created_at', '<', now()->subHour()))->exists();
-                $checks['no_aged_pending_refunds'] = ! PaymentRefund::query()->where('status', 'pending')->where('created_at', '<', now()->subDay())->exists();
-                $checks['no_aged_pending_payments'] = ! Payment::query()->whereIn('status', ['pending', 'processing'])->where('created_at', '<', now()->subDay())->exists();
+                if (! $deployment) {
+                    $checks['no_uncertain_myfatoorah_operations'] = ! MyFatoorahOperation::query()->where('status', 'uncertain')->orWhere(fn ($query) => $query->where('status', 'sending')->where('updated_at', '<', now()->subMinutes(5)))->exists();
+                    $checks['no_failed_jobs'] = DB::table('failed_jobs')->count() === 0;
+                    $checks['outbox_not_stalled'] = ! UserNotification::query()->whereNull('published_at')->where('created_at', '<', now()->subMinutes(10))->exists();
+                    $checks['channel_delivery_healthy'] = ! NotificationDelivery::query()->where('status', 'failed')->orWhere(fn ($q) => $q->where('status', 'pending')->where('created_at', '<', now()->subHour()))->exists();
+                    $checks['no_aged_pending_refunds'] = ! PaymentRefund::query()->where('status', 'pending')->where('created_at', '<', now()->subDay())->exists();
+                    $checks['no_aged_pending_payments'] = ! Payment::query()->whereIn('status', ['pending', 'processing'])->where('created_at', '<', now()->subDay())->exists();
+                }
             } catch (\Throwable) {
                 $checks['database_reachable'] = false;
             }

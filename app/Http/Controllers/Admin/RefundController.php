@@ -11,6 +11,11 @@ use Illuminate\Http\JsonResponse;
 
 final class RefundController extends Controller
 {
+    /**
+     * Refund a payment.
+     *
+     * Requires an Idempotency-Key header. Supports partial refunds up to the remaining refundable amount. A pending result reserves the amount until provider confirmation; a confirmed failed refund releases that reservation. An uncertain provider outcome must be retried with the same key.
+     */
     public function __invoke(RefundRequest $request, Payment $payment, RefundPayment $action): JsonResponse
     {
         $refund = $action->execute($request->user(), $payment, (int) $request->validated('amount'), $request->validated('idempotency_key'));

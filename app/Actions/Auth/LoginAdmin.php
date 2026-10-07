@@ -16,6 +16,7 @@ final class LoginAdmin
 {
     public function __construct(private readonly AuditLoggerInterface $audit) {}
 
+    /** @return array{user: User, token: string} */
     public function execute(string $email, #[\SensitiveParameter] string $password): array
     {
         $user = User::query()->whereRaw('LOWER(email) = ?', [mb_strtolower($email)])->first();
