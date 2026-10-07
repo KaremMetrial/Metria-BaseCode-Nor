@@ -1,0 +1,97 @@
+name: ${DEPLOY_PROJECT:?Set a unique deployment project}
+x-application: &application
+  image: ${APP_IMAGE:?APP_IMAGE must be an immutable image reference}
+  env_file:
+    - ${RUNTIME_ENV_FILE:?Set RUNTIME_ENV_FILE to the server environment file}
+  environment:
+    APP_ENV: production
+    APP_DEBUG: 'false'
+    LOG_CHANNEL: stderr
+    DB_CONNECTION: mysql
+    DB_HOST: db
+    DB_PORT: 3306
+    REDIS_HOST: redis
+    REDIS_PORT: 6379
+    CACHE_STORE: redis
+    QUEUE_CONNECTION: redis
+  volumes:
+    - app-storage:/var/www/html/storage
+  restart: unless-stopped
+  security_opt: [no-new-privileges:true]
+  depends_on:
+    db:
+      condition: service_healthy
+    redis:
+      condition: service_healthy
+services:
+  app:
+    <<: *application
+  queue:
+    <<: *application
+    command: [php, artisan, queue:work, redis, '--sleep=3', '--tries=5', '--timeout=60', '--max-time=3600']
+    stop_grace_period: 75s
+  scheduler:
+    <<: *application
+    command: [php, artisan, schedule:work]
+    stop_grace_period: 75s
+  web:
+    image: ${WEB_IMAGE:?WEB_IMAGE must be an immutable image reference}
+    ports: ['127.0.0.1:${HTTP_PORT:-8080}:8080']
+    read_only: true
+    tmpfs: [/tmp]
+    restart: unless-stopped
+    security_opt: [no-new-privileges:true]
+    depends_on: [app, socketio]
+  socketio:
+    image: ${SOCKET_IMAGE:?SOCKET_IMAGE must be an immutable image reference}
+    environment:
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD:?Set a Redis password}
+      REDIS_PREFIX: ${REDIS_PREFIX:-metrial_}
+      SOCKET_TOKEN_SECRET: ${SOCKET_TOKEN_SECRET:?Set a random socket secret}
+      CORS_ORIGIN: ${CORS_ORIGIN:?Set the frontend origin}
+    read_only: true
+    tmpfs: [/tmp]
+    restart: unless-stopped
+    security_opt: [no-new-privileges:true]
+    depends_on:
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: [CMD, node, -e, "fetch('http://127.0.0.1:6001/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 10s
+      timeout: 3s
+      start_period: 10s
+      retries: 6
+  db:
+    image: mysql:8.0
+    environment:
+      MYSQL_DATABASE: ${DB_DATABASE:?Set DB_DATABASE}
+      MYSQL_USER: ${DB_USERNAME:?Set a non-root DB_USERNAME}
+      MYSQL_PASSWORD: ${DB_PASSWORD:?Set a database password}
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:?Set a distinct root password}
+    volumes: [db-data:/var/lib/mysql]
+    restart: unless-stopped
+    healthcheck:
+      test: [CMD-SHELL, 'MYSQL_PWD="$$MYSQL_PASSWORD" mysql -h 127.0.0.1 -u"$$MYSQL_USER" "$$MYSQL_DATABASE" -e "SELECT 1" >/dev/null 2>&1']
+      interval: 5s
+      timeout: 5s
+      start_period: 30s
+      retries: 30
+  redis:
+    image: redis:7-alpine
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD:?Set a Redis password}
+    command: [sh, -c, 'exec redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy noeviction --requirepass "$$REDIS_PASSWORD"']
+    volumes: [redis-data:/data]
+    restart: unless-stopped
+    healthcheck:
+      test: [CMD-SHELL, 'REDISCLI_AUTH="$$REDIS_PASSWORD" redis-cli ping | grep -q PONG']
+      interval: 5s
+      timeout: 3s
+      retries: 10
+volumes:
+  app-storage:
+  db-data:
+  redis-data:

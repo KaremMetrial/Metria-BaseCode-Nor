@@ -1,3 +1,4 @@
+require('./env.cjs');
 const express = require('express');
 const { createServer } = require('node:http');
 const { Server } = require('socket.io');
@@ -58,7 +59,7 @@ async function main() {
       io.local.to(room).emit(envelope.event, envelope.data);
     } catch { console.error('INVALID_BROADCAST'); }
   });
-  server.listen(Number(process.env.SOCKET_IO_PORT || 6001));
+  server.listen(Number(process.env.PORT || process.env.SOCKET_IO_PORT || 6001));
 }
 for (const signal of ['SIGTERM', 'SIGINT']) process.on(signal, async () => {
   io.local.disconnectSockets(true);

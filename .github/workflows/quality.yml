@@ -1,5 +1,17 @@
-name: Application quality
-on: [push, pull_request]
+name: CI and cPanel deployment
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      target:
+        description: Deployment target (none builds a downloadable release)
+        type: choice
+        default: none
+        options: [none, staging, production]
+concurrency:
+  group: quality-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 permissions:
   contents: read
 jobs:
@@ -19,6 +31,9 @@ jobs:
       redis:
         image: redis:7-alpine
         ports: [6379:6379]
+        options: >-
+          --health-cmd="redis-cli ping"
+          --health-interval=5s --health-timeout=5s --health-retries=20
     env:
       APP_ENV: testing
       APP_DEBUG: false
@@ -39,15 +54,15 @@ jobs:
       QUEUE_CONNECTION: sync
       SESSION_DRIVER: array
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           persist-credentials: false
-      - uses: shivammathur/setup-php@v2
+      - uses: shivammathur/setup-php@b604ade2a87db23f8871b7182e69ec5e75effb45 # v2
         with:
           php-version: '8.5'
           extensions: mbstring, intl, pdo_mysql, pdo_sqlite, bcmath
           coverage: none
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: '22'
       - run: composer install --no-interaction --prefer-dist
@@ -55,8 +70,13 @@ jobs:
       - run: php artisan key:generate --no-interaction
       - run: composer validate --strict
       - run: composer audit
+      - name: Check PHP formatting
+        run: |
+          vendor/bin/pint --format agent
+          git diff --exit-code
       - run: vendor/bin/phpstan analyse --no-progress
-      - run: php artisan test --compact
+      - run: mkdir -p test-results
+      - run: php artisan test --compact --log-junit test-results/phpunit.xml
       - run: php artisan migrate:fresh --seed --force --no-interaction
       - run: php artisan db:seed --force --no-interaction
       - run: npm ci
@@ -64,7 +84,117 @@ jobs:
       - run: npm audit
       - run: npm --prefix docker/socketio audit
       - run: npm run build
-      - run: node --test docker/socketio/auth.test.cjs docker/socketio/integration.test.cjs
+      - run: node --test docker/socketio/*.test.cjs docker/deploy/*.test.cjs
         env:
           TEST_REDIS_PORT: 6379
       - run: docker compose config --quiet
+      - name: Validate deployment shell scripts
+        run: |
+          bash -n docker/deploy/*.sh
+          shellcheck docker/deploy/*.sh
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: always()
+        with:
+          name: test-results
+          path: test-results/
+          retention-days: 7
+
+  production-smoke:
+    needs: verify
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
+      - name: Build app image
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7
+        with:
+          context: .
+          file: docker/production/Dockerfile
+          target: app
+          load: true
+          tags: metrial-ci-app:local
+          cache-from: type=gha,scope=app
+          cache-to: type=gha,mode=max,scope=app
+      - name: Build web image
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7
+        with:
+          context: .
+          file: docker/production/Dockerfile
+          target: web
+          load: true
+          tags: metrial-ci-web:local
+          cache-from: type=gha,scope=web
+          cache-to: type=gha,mode=max,scope=web
+      - name: Build socket image
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7
+        with:
+          context: .
+          file: docker/socketio/Dockerfile
+          load: true
+          tags: metrial-ci-socket:local
+          cache-from: type=gha,scope=socket
+          cache-to: type=gha,mode=max,scope=socket
+      - name: Boot production stack with disposable database and Redis
+        run: bash docker/deploy/smoke.sh
+
+  release:
+    needs: [verify, production-smoke]
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: shivammathur/setup-php@b604ade2a87db23f8871b7182e69ec5e75effb45 # v2
+        with:
+          php-version: '8.5'
+          extensions: mbstring, intl, pdo_mysql, bcmath
+          coverage: none
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '22'
+      - run: composer install --no-dev --no-scripts --no-interaction --prefer-dist
+      - run: npm ci --ignore-scripts
+      - run: npm run build
+      - run: bash docker/deploy/package.sh
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: cpanel-release-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: dist/release.tar.gz*
+          retention-days: 14
+          if-no-files-found: error
+
+  deploy:
+    needs: release
+    if: >-
+      github.ref == 'refs/heads/main' &&
+      ((github.event_name == 'workflow_dispatch' && inputs.target != 'none') ||
+       (github.event_name == 'push' && vars.STAGING_AUTO_DEPLOY == 'true'))
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    environment: ${{ inputs.target == 'production' && 'production' || 'staging' }}
+    concurrency:
+      group: cpanel-${{ inputs.target == 'production' && 'production' || 'staging' }}
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: cpanel-release-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: dist
+      - name: Deploy verified release over SSH
+        run: bash docker/deploy/remote.sh deploy
+        env:
+          RELEASE_ID: ${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          DEPLOY_HOST: ${{ vars.DEPLOY_HOST }}
+          DEPLOY_PORT: ${{ vars.DEPLOY_PORT }}
+          DEPLOY_USER: ${{ vars.DEPLOY_USER }}
+          DEPLOY_PATH: ${{ vars.DEPLOY_PATH }}
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          SSH_KNOWN_HOSTS: ${{ secrets.SSH_KNOWN_HOSTS }}
