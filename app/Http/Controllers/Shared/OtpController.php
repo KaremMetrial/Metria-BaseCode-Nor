@@ -28,18 +28,18 @@ final class OtpController extends Controller
         $type = UserType::from($request->route('actor_type'));
         $id = $otp->issue($phone->e164, (int) $data['country_id'], $type, OtpPurpose::LOGIN, null, app()->getLocale());
 
-        return ApiResponse::success(['challenge_id' => $id], __('otp.sent'));
+        return ApiResponse::success(['challenge_id' => $id, 'expires_in' => (int) config('otp.ttl_seconds'), 'resend_after' => (int) config('otp.cooldown_seconds')], __('otp.sent'));
     }
 
     /**
      * Verify a sign-in code.
      *
-     * Submit the same country and phone with the challenge ID and six-digit code. Creates an account when needed and returns its profile and bearer token. New vendors await administrator approval.
+     * Submit the same country and phone with the challenge ID and six-digit code. Creates an account when needed and returns its profile and bearer token. For clients, next_step identifies whether profile completion is required; expires_at identifies token expiry. Optional device_id rotates an existing session for that installation. New vendors await administrator approval.
      */
     public function verify(VerifyOtpRequest $request, VerifyPhoneLogin $action): JsonResponse
     {
         $result = $action->execute($request->validated(), UserType::from($request->route('actor_type')));
 
-        return ApiResponse::success(['user' => new UserResource($result['user']), 'token' => $result['token']], __('auth.login'));
+        return ApiResponse::success(['user' => new UserResource($result['user']), 'token' => $result['token'], 'expires_at' => $result['expires_at'], 'next_step' => $result['next_step']], __('auth.login'));
     }
 }

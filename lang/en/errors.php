@@ -49,4 +49,6 @@ return [
     'RECONCILIATION_REQUIRED' => 'This operation requires reconciliation before it can continue.',
     'CATEGORY_DEPTH_EXCEEDED' => 'The category exceeds the supported nesting depth.',
     'CATEGORY_CYCLE' => 'A category cannot be its own ancestor.',
+    'REAUTHENTICATION_REQUIRED' => 'Verify your phone again before continuing.',
+    'ACCOUNT_CLOSURE_BLOCKED' => 'Resolve your wallet balance and pending payments or refunds before closing your account.',
 ];

@@ -15,11 +15,11 @@ final class PhoneChangeController extends Controller
     /**
      * Request a phone change.
      *
-     * Sends a verification code to the proposed new mobile number. The number must not already belong to another account.
+     * Clients must have verified their current phone within the last five minutes, through login or reauthentication. Sends a verification code to the proposed new mobile number. The number must not already belong to another account.
      */
     public function request(OtpRequest $request, ChangePhone $action): JsonResponse
     {
-        return ApiResponse::success(['challenge_id' => $action->request($request->user(), $request->validated())], __('otp.sent'));
+        return ApiResponse::success(['challenge_id' => $action->request($request->user(), $request->validated()), 'expires_in' => (int) config('otp.ttl_seconds'), 'resend_after' => (int) config('otp.cooldown_seconds')], __('otp.sent'));
     }
 
     /**

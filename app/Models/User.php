@@ -62,6 +62,12 @@ class User extends Authenticatable implements HasLocalePreference
             'email_verified_at' => 'datetime',
             'phone_verified_at' => 'datetime',
             'last_login_at' => 'datetime',
+            'profile_completed_at' => 'datetime',
+            'terms_accepted_at' => 'datetime',
+            'notification_preferences' => 'array',
+            'notifications_version' => 'integer',
+            'notifications_dirty' => 'boolean',
+            'notifications_published_version' => 'integer',
             'password' => 'hashed',
         ];
     }
@@ -104,6 +110,19 @@ class User extends Authenticatable implements HasLocalePreference
     | State
     |--------------------------------------------------------------------------
     */
+
+    public function hasCompletedProfile(): bool
+    {
+        return $this->profile_completed_at !== null && trim($this->name) !== ''
+            && $this->phone_verified_at !== null && $this->terms_accepted_at !== null
+            && $this->terms_version === (string) config('client.terms_version');
+    }
+
+    /** @return array{security_push: bool, transactional_push: bool, marketing_push: bool} */
+    public function notificationPreferences(): array
+    {
+        return array_replace(['security_push' => true, 'transactional_push' => true, 'marketing_push' => false], $this->notification_preferences ?? []);
+    }
 
     public function isActive(): bool
     {

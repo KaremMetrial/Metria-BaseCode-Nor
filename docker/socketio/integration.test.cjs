@@ -31,6 +31,10 @@ test('live socket credentials, room isolation, Redis relay and expiry', {skip:!p
   const received=new Promise((resolve,reject)=>{other.once('notification.created',resolve);setTimeout(()=>reject(new Error('relay timed out')),2000).unref();});
   await redis.connect();await redis.publish('metrial_integration_private-user.2',JSON.stringify({event:'notification.created',data:{id:'notification-one',body:'مرحبا'}}));
   assert.equal((await received).id,'notification-one');await new Promise(r=>setTimeout(r,100));assert.equal(leaked,false);
+  let stateLeaked=false;own.on('notification.state_changed',()=>stateLeaked=true);
+  const stateReceived=new Promise((resolve,reject)=>{other.once('notification.state_changed',resolve);setTimeout(()=>reject(new Error('state relay timed out')),2000).unref();});
+  await redis.publish('metrial_integration_private-user.2',JSON.stringify({event:'notification.state_changed',data:{version:7,unread_count:2}}));
+  assert.deepEqual(await stateReceived,{version:7,unread_count:2});await new Promise(r=>setTimeout(r,100));assert.equal(stateLeaked,false);
   const expiring=await connect({token:token('3',Math.floor(Date.now()/1000)+2)});sockets.push(expiring);
   await new Promise((resolve,reject)=>{expiring.once('disconnect',resolve);setTimeout(()=>reject(new Error('token did not expire')),4000).unref();});
  } finally {sockets.forEach(s=>s.close());if(redis.isOpen)await redis.quit();server.kill('SIGTERM');await new Promise(resolve=>server.once('exit',resolve));}

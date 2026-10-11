@@ -12,6 +12,8 @@ namespace App\Enums;
 enum AuditAction: string
 {
     // Authentication
+    case USER_ACCOUNT_CLOSED = 'user.account_closed';
+    case USER_SESSION_REVOKED = 'user.session_revoked';
     case USER_LOGIN = 'user.login';
     case USER_LOGOUT = 'user.logout';
     case USER_LOGIN_FAILED = 'user.login_failed';

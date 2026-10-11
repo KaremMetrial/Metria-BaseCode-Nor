@@ -91,7 +91,10 @@ class AuthenticationFlowTest extends TestCase
     {
         $data = $this->challenge($this->phone());
         $this->postJson('/api/v1/vendor/auth/otp/verify', $data)->assertUnprocessable()->assertJsonPath('code', 'INVALID_OTP');
-        Sanctum::actingAs(User::factory()->client()->create());
+        $user = User::factory()->client()->create();
+        $token = $user->createToken('phone-test');
+        $token->accessToken->forceFill(['authenticated_at' => now()])->save();
+        $this->withToken($token->plainTextToken);
         $this->postJson('/api/v1/client/profile/phone/verify', $data)->assertUnprocessable()->assertJsonPath('code', 'INVALID_OTP');
         $this->assertNull(OtpChallenge::query()->first()->consumed_at);
     }
@@ -145,7 +148,9 @@ class AuthenticationFlowTest extends TestCase
         $phone = $this->phone();
         $user = User::factory()->client()->create();
         $user->createToken('old');
-        Sanctum::actingAs($user);
+        $token = $user->createToken('phone-test');
+        $token->accessToken->forceFill(['authenticated_at' => now()])->save();
+        $this->withToken($token->plainTextToken);
         $id = $this->postJson('/api/v1/client/profile/phone/request', $phone)->assertOk()->json('data.challenge_id');
         $this->postJson('/api/v1/client/profile/phone/verify', $phone + ['challenge_id' => $id, 'code' => RecordingSms::code()])->assertOk();
         $this->assertSame('+201012345678', $user->fresh()->phone);

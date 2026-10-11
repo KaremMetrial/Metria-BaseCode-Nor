@@ -8,6 +8,8 @@ use Illuminate\Database\Eloquent\Model;
 /**
  * @property array<string, string|int|float|bool|null> $parameters
  * @property CarbonImmutable|null $read_at
+ * @property CarbonImmutable|null $archived_at
+ * @property array<string, mixed>|null $action
  * @property CarbonImmutable|null $published_at
  */
 class UserNotification extends Model
@@ -18,12 +20,12 @@ class UserNotification extends Model
 
     protected function casts(): array
     {
-        return ['parameters' => 'array', 'read_at' => 'immutable_datetime', 'published_at' => 'immutable_datetime'];
+        return ['parameters' => 'array', 'action' => 'array', 'sequence' => 'integer', 'revision' => 'integer', 'archived_at' => 'immutable_datetime', 'read_at' => 'immutable_datetime', 'published_at' => 'immutable_datetime'];
     }
 
-    /** @return array{id: string, title: string, body: string, read_at: string|null, created_at: string} */
+    /** @return array{id: string, title: string, body: string, read_at: string|null, created_at: string, category: string, action: ?array, archived_at: ?string, revision: int} */
     public function payload(): array
     {
-        return ['id' => $this->id, 'title' => trans('notifications.title', [], $this->locale), 'body' => trans($this->translation_key, $this->parameters, $this->locale), 'read_at' => $this->read_at?->toIso8601String(), 'created_at' => $this->created_at->toIso8601String()];
+        return ['id' => $this->id, 'category' => $this->category, 'action' => $this->action, 'archived_at' => $this->archived_at?->toIso8601String(), 'revision' => $this->revision, 'title' => (string) trans('notifications.title', [], $this->locale), 'body' => (string) trans($this->translation_key, $this->parameters, $this->locale), 'read_at' => $this->read_at?->toIso8601String(), 'created_at' => $this->created_at->toIso8601String()];
     }
 }

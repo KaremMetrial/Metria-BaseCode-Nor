@@ -15,7 +15,7 @@ final class DeviceTokenController extends Controller
     /**
      * Register a push device.
      *
-     * Registers a Firebase device token for this account. A token owned by another account returns 409 RESOURCE_CONFLICT. Each account may register up to ten devices.
+     * Registers a Firebase device token for the current bearer session; token rotation replaces its previous subscription. Logout or session expiry stops delivery. A token owned by another account returns 409 RESOURCE_CONFLICT. Each account may register up to ten devices.
      */
     public function store(DeviceTokenRequest $request, RegisterDeviceToken $action): JsonResponse
     {

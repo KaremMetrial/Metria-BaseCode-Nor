@@ -54,7 +54,7 @@ async function main() {
     if (!/^private-user\.[1-9][0-9]*$/.test(room)) return;
     try {
       const envelope = JSON.parse(message);
-      if (envelope.event !== 'notification.created' || typeof envelope.data !== 'object') return;
+      if (!['notification.created', 'notification.state_changed'].includes(envelope.event) || typeof envelope.data !== 'object') return;
       // Each node receives Redis broadcasts; local emission avoids N-fold fan-out.
       io.local.to(room).emit(envelope.event, envelope.data);
     } catch { console.error('INVALID_BROADCAST'); }

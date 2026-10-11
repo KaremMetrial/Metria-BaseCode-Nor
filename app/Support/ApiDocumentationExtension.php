@@ -130,7 +130,7 @@ final class ApiDocumentationExtension extends OperationExtension
             $body->getProperty('provider')->setDescription('May be omitted only when an enabled default gateway is configured.');
             $this->omitProhibited($body, ['status', 'user_id', 'wallet_id']);
         }
-        if (str_ends_with($operation->path, '/profile') && $operation->method === 'patch') {
+        if ((str_ends_with($operation->path, '/profile') && $operation->method === 'patch') || str_ends_with($operation->path, '/auth/complete-profile')) {
             $this->omitProhibited($body, ['phone', 'phone_country_id', 'type', 'status', 'roles', 'permissions', 'balance', 'phone_verified_at', 'password', 'email']);
             $body->addProperty('timezone', (new StringType)->nullable(true)->examples(['Africa/Cairo'])->setDescription('IANA timezone identifier, or null.'));
         }
@@ -170,7 +170,7 @@ final class ApiDocumentationExtension extends OperationExtension
         if (in_array($operation->method, ['post', 'patch', 'delete'], true)) {
             $statuses[] = 409;
         }
-        if (Str::contains($operation->path, ['/otp/', '/phone/request', '/payments', '/realtime/token', '/devices', '/integrations/myfatoorah'])) {
+        if (Str::contains($operation->path, ['/otp/', '/reauthenticate/', '/phone/request', '/payments', '/realtime/token', '/devices', '/integrations/myfatoorah'])) {
             $statuses[] = 503;
         }
         if (str_ends_with($operation->path, '/auth/login')) {
@@ -200,7 +200,7 @@ final class ApiDocumentationExtension extends OperationExtension
                 if (str_contains($operation->path, '/notifications') && $data instanceof ObjectType) {
                     $notification = $data->properties['items'] ?? $data;
                     $notification = $notification instanceof ArrayType ? $notification->items : $notification;
-                    if ($notification instanceof ObjectType) {
+                    if ($notification instanceof ObjectType && $notification->hasProperty('id')) {
                         $notification->addProperty('title', new StringType)->addProperty('body', new StringType);
                         $notification->getProperty('id')->format('uuid');
                         $notification->getProperty('read_at')->format('date-time');

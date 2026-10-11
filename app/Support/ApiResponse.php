@@ -77,12 +77,14 @@ final class ApiResponse
             ErrorCode::INVALID_CREDENTIALS => 401,
 
             ErrorCode::FORBIDDEN,
+            ErrorCode::REAUTHENTICATION_REQUIRED,
             ErrorCode::ACCOUNT_DISABLED,
             ErrorCode::ACCOUNT_PENDING => 403,
 
             ErrorCode::NOT_FOUND => 404,
             ErrorCode::METHOD_NOT_ALLOWED => 405,
 
+            ErrorCode::ACCOUNT_CLOSURE_BLOCKED,
             ErrorCode::PHONE_ALREADY_EXISTS,
             ErrorCode::RESOURCE_IN_USE, ErrorCode::RESOURCE_CONFLICT => 409,
 

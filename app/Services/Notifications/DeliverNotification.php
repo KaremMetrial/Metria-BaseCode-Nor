@@ -3,18 +3,21 @@
 namespace App\Services\Notifications;
 
 use App\Enums\ErrorCode;
+use App\Enums\UserType;
 use App\Exceptions\DomainException;
 use App\Mail\AccountNotificationMail;
 use App\Models\DeviceToken;
 use App\Models\NotificationDelivery;
 use App\Models\User;
 use App\Models\UserNotification;
+use App\Services\Auth\AccountSessions;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Mail;
+use Laravel\Sanctum\PersonalAccessToken;
 
 final class DeliverNotification
 {
-    public function __construct(private readonly FcmClient $push) {}
+    public function __construct(private readonly FcmClient $push, private readonly AccountSessions $sessions) {}
 
     public function execute(int $id): void
     {
@@ -39,7 +42,7 @@ final class DeliverNotification
             try {
                 $status = 'sent';
                 if ($delivery->channel === 'email') {
-                    if (! $user->email_verified_at || ! $user->email) {
+                    if ($user->type === UserType::CLIENT || ! $user->email_verified_at || ! $user->email) {
                         $status = 'skipped';
                     } elseif (! config('notifications.email_enabled') || in_array(config('mail.default'), ['log', 'array'], true)) {
                         throw new DomainException(ErrorCode::PROVIDER_UNAVAILABLE);
@@ -48,7 +51,8 @@ final class DeliverNotification
                     }
                 } elseif ($delivery->channel === 'fcm') {
                     $device = DeviceToken::query()->where('user_id', $user->id)->find($delivery->recipient_key);
-                    if (! $device) {
+                    $session = $device?->personal_access_token_id ? PersonalAccessToken::find($device->personal_access_token_id) : null;
+                    if (! $device || ! $session || (int) $session->tokenable_id !== $user->id || $session->tokenable_type !== $user->getMorphClass() || ! $this->sessions->isValid($session) || ! $user->notificationPreferences()[$notification->category.'_push'] || $notification->archived_at) {
                         $status = 'skipped';
                     } elseif (! config('notifications.fcm_enabled')) {
                         throw new DomainException(ErrorCode::PROVIDER_UNAVAILABLE);

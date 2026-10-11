@@ -17,7 +17,6 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Queue;
-use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
 class DeliveryChannelsTest extends TestCase
@@ -43,6 +42,7 @@ class DeliveryChannelsTest extends TestCase
         file_put_contents($this->credentialsFile, json_encode(['type' => 'service_account', 'client_email' => 'test@metrial-test.iam.gserviceaccount.com', 'private_key' => $pem, 'project_id' => 'metrial-test'], JSON_THROW_ON_ERROR));
         config(['notifications.fcm_enabled' => true, 'notifications.fcm_project' => 'metrial-test', 'notifications.fcm_credentials' => $this->credentialsFile]);
         $user = User::factory()->create(['locale' => 'ar']);
+        $user->withAccessToken($user->createToken('push-test')->accessToken);
         app(RegisterDeviceToken::class)->execute($user, 'test-device-token-12345678901234567890');
         app(NotificationOutbox::class)->record($user, 'notifications.phone_changed', [], 'phone-change');
         Http::preventStrayRequests();
@@ -53,17 +53,20 @@ class DeliveryChannelsTest extends TestCase
     public function test_device_registration_encrypts_secrets_and_cannot_steal_another_users_token(): void
     {
         $user = User::factory()->create();
-        Sanctum::actingAs($user);
+        $this->app['auth']->forgetGuards();
+        $this->withToken($user->createToken('device-test')->plainTextToken);
         $token = 'private-device-token-12345678901234567890';
         $id = $this->postJson('/api/v1/client/devices', ['token' => $token])->assertCreated()->json('data.id');
         $this->postJson('/api/v1/client/devices', ['token' => $token])->assertCreated()->assertJsonPath('data.id', $id);
         $this->assertDatabaseCount('device_tokens', 1);
         $this->assertNotSame($token, DB::table('device_tokens')->value('token'));
         $this->assertArrayNotHasKey('token', DeviceToken::findOrFail($id)->toArray());
-        Sanctum::actingAs(User::factory()->create());
+        $this->app['auth']->forgetGuards();
+        $this->withToken(User::factory()->create()->createToken('other-device-test')->plainTextToken);
         $this->postJson('/api/v1/client/devices', ['token' => $token])->assertConflict();
         $this->deleteJson('/api/v1/client/devices/'.$id)->assertNotFound();
-        Sanctum::actingAs($user);
+        $this->app['auth']->forgetGuards();
+        $this->withToken($user->createToken('device-test')->plainTextToken);
         $this->deleteJson('/api/v1/client/devices/'.$id)->assertOk();
         $this->assertDatabaseCount('device_tokens', 0);
     }
@@ -71,7 +74,7 @@ class DeliveryChannelsTest extends TestCase
     public function test_verified_email_receives_recipient_locale_once_from_durable_delivery(): void
     {
         config(['notifications.email_enabled' => true, 'mail.default' => 'smtp']);
-        $user = User::factory()->create(['locale' => 'ar']);
+        $user = User::factory()->vendor()->create(['locale' => 'ar']);
         $outbox = app(NotificationOutbox::class);
         $outbox->record($user, 'notifications.phone_changed', [], 'email-change');
         $outbox->record($user, 'notifications.phone_changed', [], 'email-change');
@@ -164,7 +167,7 @@ class DeliveryChannelsTest extends TestCase
     public function test_outbox_dispatches_channel_jobs_and_transaction_rollback_discards_them(): void
     {
         config(['notifications.email_enabled' => true]);
-        $user = User::factory()->create();
+        $user = User::factory()->vendor()->create();
         Queue::fake();
         DB::beginTransaction();
         app(NotificationOutbox::class)->record($user, 'notifications.phone_changed', [], 'rolled-back');

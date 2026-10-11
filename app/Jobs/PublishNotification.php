@@ -2,6 +2,7 @@
 
 namespace App\Jobs;
 
+use App\Models\User;
 use App\Models\UserNotification;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
@@ -28,6 +29,11 @@ final class PublishNotification implements ShouldQueue
     {
         $row = UserNotification::query()->find($this->notificationId);
         if (! $row || $row->published_at) {
+            return;
+        }
+        if (! User::query()->whereKey($row->user_id)->where('status', 'active')->exists()) {
+            $row->forceFill(['published_at' => now()])->save();
+
             return;
         }
         $redis = Redis::connection(config('broadcasting.connections.redis.connection', 'default'));
