@@ -2,7 +2,7 @@
 
 namespace Tests\Feature;
 
-use App\Actions\Payments\CreatePayment;
+use App\Actions\Shared\Payments\CreatePayment;
 use App\Models\MyFatoorahEntity;
 use App\Models\MyFatoorahOperation;
 use App\Models\User;

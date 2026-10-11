@@ -2,9 +2,9 @@
 
 namespace App\Http\Controllers\Admin;
 
-use App\Actions\Payments\RefundPayment;
+use App\Actions\Admin\Payments\RefundPayment;
 use App\Http\Controllers\Controller;
-use App\Http\Requests\Finance\RefundRequest;
+use App\Http\Requests\Admin\RefundRequest;
 use App\Models\Payment;
 use App\Support\ApiResponse;
 use Illuminate\Http\JsonResponse;

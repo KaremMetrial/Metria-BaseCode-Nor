@@ -2,7 +2,7 @@
 
 namespace Tests\Feature\Notifications;
 
-use App\Actions\Notifications\RegisterDeviceToken;
+use App\Actions\Shared\Notifications\RegisterDeviceToken;
 use App\Exceptions\DomainException;
 use App\Jobs\DeliverNotificationChannel;
 use App\Jobs\PublishNotification;

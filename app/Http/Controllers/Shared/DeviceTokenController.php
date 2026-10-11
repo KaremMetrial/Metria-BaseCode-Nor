@@ -2,9 +2,9 @@
 
 namespace App\Http\Controllers\Shared;
 
-use App\Actions\Notifications\RegisterDeviceToken;
+use App\Actions\Shared\Notifications\RegisterDeviceToken;
 use App\Http\Controllers\Controller;
-use App\Http\Requests\Notifications\DeviceTokenRequest;
+use App\Http\Requests\Shared\DeviceTokenRequest;
 use App\Models\DeviceToken;
 use App\Support\ApiResponse;
 use Illuminate\Http\JsonResponse;

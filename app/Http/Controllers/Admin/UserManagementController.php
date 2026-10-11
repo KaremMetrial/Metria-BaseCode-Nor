@@ -2,8 +2,8 @@
 
 namespace App\Http\Controllers\Admin;
 
-use App\Actions\Access\AssignUserRole;
-use App\Actions\Access\ChangeUserStatus;
+use App\Actions\Admin\Access\AssignUserRole;
+use App\Actions\Admin\Access\ChangeUserStatus;
 use App\Enums\UserStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\UserRoleRequest;

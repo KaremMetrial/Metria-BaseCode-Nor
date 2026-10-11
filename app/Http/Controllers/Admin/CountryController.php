@@ -2,9 +2,9 @@
 
 namespace App\Http\Controllers\Admin;
 
-use App\Actions\Location\CreateCountry;
-use App\Actions\Location\DeleteCountry;
-use App\Actions\Location\UpdateCountry;
+use App\Actions\Admin\Location\CreateCountry;
+use App\Actions\Admin\Location\DeleteCountry;
+use App\Actions\Admin\Location\UpdateCountry;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\DestroyCountryRequest;
 use App\Http\Requests\Admin\StoreCountryRequest;

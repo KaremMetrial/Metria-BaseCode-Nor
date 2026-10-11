@@ -22,7 +22,7 @@ use Illuminate\Http\JsonResponse;
  *    localized name, and without the eager load Astrotomic would fire one query
  *    per row -- 250 queries on a listing endpoint.
  *
- * Route parameters are constrained to digits in routes/locations.php, so the
+ * Route parameters are constrained to digits in routes/shared/locations.php, so the
  * `int` type hints below cannot receive a non-numeric string.
  */
 final class CountryController extends Controller

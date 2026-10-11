@@ -2,7 +2,7 @@
 
 namespace App\Console\Commands;
 
-use App\Actions\Payments\ReconcilePayment;
+use App\Actions\Shared\Payments\ReconcilePayment;
 use App\Exceptions\DomainException;
 use App\Models\Payment;
 use App\Models\PaymentRefund;

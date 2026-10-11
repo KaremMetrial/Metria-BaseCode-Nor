@@ -1,6 +1,5 @@
 <?php
 
-use App\Http\Controllers\Shared\CategoryController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -9,15 +8,15 @@ use Illuminate\Support\Facades\Route;
 |--------------------------------------------------------------------------
 |
 | Versioned from day one so a v2 can be introduced without breaking clients.
-| Each actor gets its own route file, but the business logic behind them is
-| shared: an admin wallet adjustment and a vendor wallet adjustment call the
-| same Action.
+| Each actor gets its own route file. Actor-exclusive controllers, requests,
+| resources and actions live under that actor's namespace. Reused behavior,
+| such as client and vendor payments, lives under Shared.
 |
 | Actor separation is enforced by the `actor:<type>` middleware inside each
 | file. The URL prefix is only routing and must never be treated as security.
 |
 | Adding a new actor (courier, employee, support, provider) means adding one
-| enum case and one file here.
+| enum case and registering its route file here.
 |
 */
 
@@ -26,15 +25,14 @@ Route::prefix('v1')
     ->group(function (): void {
         // Provider callbacks authenticate by signature, not by session, so they
         // sit outside the actor groups.
-        require base_path('routes/webhooks.php');
+        require base_path('routes/shared/webhooks.php');
 
         // Public reference data: geography is needed before authentication
         // exists (country picker, calling code for the phone/OTP flow).
-        require base_path('routes/locations.php');
-        Route::get('categories', [CategoryController::class, 'index'])->middleware('throttle:api')->name('categories.index');
-        Route::get('categories/{category}', [CategoryController::class, 'show'])->whereNumber('category')->middleware('throttle:api')->name('categories.show');
+        require base_path('routes/shared/locations.php');
+        require base_path('routes/shared/categories.php');
 
-        require base_path('routes/admin.php');
-        require base_path('routes/client.php');
-        require base_path('routes/vendor.php');
+        require base_path('routes/admin/api.php');
+        require base_path('routes/client/api.php');
+        require base_path('routes/vendor/api.php');
     });

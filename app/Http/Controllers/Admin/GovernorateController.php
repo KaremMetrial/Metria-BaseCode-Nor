@@ -2,9 +2,9 @@
 
 namespace App\Http\Controllers\Admin;
 
-use App\Actions\Location\CreateGovernorate;
-use App\Actions\Location\DeleteGovernorate;
-use App\Actions\Location\UpdateGovernorate;
+use App\Actions\Admin\Location\CreateGovernorate;
+use App\Actions\Admin\Location\DeleteGovernorate;
+use App\Actions\Admin\Location\UpdateGovernorate;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\DestroyGovernorateRequest;
 use App\Http\Requests\Admin\IndexGovernorateRequest;

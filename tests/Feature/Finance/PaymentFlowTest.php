@@ -2,9 +2,9 @@
 
 namespace Tests\Feature\Finance;
 
-use App\Actions\Payments\CreatePayment;
-use App\Actions\Payments\ProcessWebhook;
-use App\Actions\Payments\RefundPayment;
+use App\Actions\Admin\Payments\RefundPayment;
+use App\Actions\Shared\Payments\CreatePayment;
+use App\Actions\Shared\Payments\ProcessWebhook;
 use App\Enums\PaymentStatus;
 use App\Exceptions\DomainException;
 use App\Models\Payment;

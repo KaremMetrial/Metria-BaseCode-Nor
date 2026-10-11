@@ -1,8 +1,8 @@
 <?php
 
-use App\Actions\Auth\VerifyPhoneLogin;
-use App\Actions\Payments\ProcessWebhook;
-use App\Actions\Payments\RefundPayment;
+use App\Actions\Admin\Payments\RefundPayment;
+use App\Actions\Shared\Auth\VerifyPhoneLogin;
+use App\Actions\Shared\Payments\ProcessWebhook;
 use App\Enums\UserType;
 use App\Enums\WalletTransactionType;
 use App\Exceptions\DomainException;

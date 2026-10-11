@@ -2,9 +2,9 @@
 
 namespace App\Http\Controllers\Admin;
 
-use App\Actions\Wallet\AdjustWallet;
+use App\Actions\Admin\Wallet\AdjustWallet;
 use App\Http\Controllers\Controller;
-use App\Http\Requests\Finance\WalletAdjustmentRequest;
+use App\Http\Requests\Admin\WalletAdjustmentRequest;
 use App\Http\Resources\Shared\WalletTransactionResource;
 use App\Models\Wallet;
 use App\Support\ApiResponse;

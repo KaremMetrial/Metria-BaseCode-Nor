@@ -2,7 +2,7 @@
 
 namespace Tests\Feature\Security;
 
-use App\Actions\Payments\CreatePayment;
+use App\Actions\Shared\Payments\CreatePayment;
 use App\Models\User;
 use App\Services\Operations\ReadinessChecks;
 use Illuminate\Foundation\Testing\RefreshDatabase;

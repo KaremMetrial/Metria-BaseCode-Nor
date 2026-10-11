@@ -2,9 +2,9 @@
 
 namespace App\Http\Controllers\Shared;
 
-use App\Actions\Profile\UpdateProfile;
+use App\Actions\Shared\Profile\UpdateProfile;
 use App\Http\Controllers\Controller;
-use App\Http\Requests\Profile\UpdateProfileRequest;
+use App\Http\Requests\Shared\UpdateProfileRequest;
 use App\Http\Resources\Shared\UserResource;
 use App\Support\ApiResponse;
 use Illuminate\Http\JsonResponse;

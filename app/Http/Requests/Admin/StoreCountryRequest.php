@@ -2,7 +2,6 @@
 
 namespace App\Http\Requests\Admin;
 
-use App\Http\Requests\Shared\ValidatesTranslations;
 use App\Models\Country;
 use App\Support\Access\PermissionRegistry;
 use Illuminate\Validation\Rule;

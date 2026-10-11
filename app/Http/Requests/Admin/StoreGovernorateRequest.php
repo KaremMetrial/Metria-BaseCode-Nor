@@ -3,7 +3,6 @@
 namespace App\Http\Requests\Admin;
 
 use App\Enums\GovernorateType;
-use App\Http\Requests\Shared\ValidatesTranslations;
 use App\Models\Governorate;
 use App\Support\Access\PermissionRegistry;
 use Illuminate\Validation\Rule;

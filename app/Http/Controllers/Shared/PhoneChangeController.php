@@ -2,10 +2,10 @@
 
 namespace App\Http\Controllers\Shared;
 
-use App\Actions\Profile\ChangePhone;
+use App\Actions\Shared\Profile\ChangePhone;
 use App\Http\Controllers\Controller;
-use App\Http\Requests\Auth\OtpRequest;
-use App\Http\Requests\Auth\VerifyOtpRequest;
+use App\Http\Requests\Shared\OtpRequest;
+use App\Http\Requests\Shared\VerifyOtpRequest;
 use App\Http\Resources\Shared\UserResource;
 use App\Support\ApiResponse;
 use Illuminate\Http\JsonResponse;

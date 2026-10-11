@@ -12,7 +12,7 @@ use Illuminate\Support\Facades\Route;
 |--------------------------------------------------------------------------
 |
 | Already inside the `auth:sanctum`, `actor:admin`, `active`, `throttle:api`
-| group (required from routes/admin.php), so only the fine-grained permission
+| group (required from routes/admin/api.php), so only the fine-grained permission
 | split is declared here.
 |
 | Read and manage are separate permissions because they are separate jobs: a

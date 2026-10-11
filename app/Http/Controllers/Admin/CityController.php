@@ -2,9 +2,9 @@
 
 namespace App\Http\Controllers\Admin;
 
-use App\Actions\Location\CreateCity;
-use App\Actions\Location\DeleteCity;
-use App\Actions\Location\UpdateCity;
+use App\Actions\Admin\Location\CreateCity;
+use App\Actions\Admin\Location\DeleteCity;
+use App\Actions\Admin\Location\UpdateCity;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\DestroyCityRequest;
 use App\Http\Requests\Admin\IndexCityRequest;

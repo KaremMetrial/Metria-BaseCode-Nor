@@ -2,9 +2,9 @@
 
 namespace App\Http\Controllers\Shared;
 
-use App\Actions\Payments\CreatePayment;
+use App\Actions\Shared\Payments\CreatePayment;
 use App\Http\Controllers\Controller;
-use App\Http\Requests\Finance\PaymentRequest;
+use App\Http\Requests\Shared\PaymentRequest;
 use App\Http\Resources\Shared\PaymentResource;
 use App\Models\Payment;
 use App\Support\ApiResponse;

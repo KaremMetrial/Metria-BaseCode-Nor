@@ -2,17 +2,17 @@
 
 namespace App\Http\Controllers\Admin;
 
-use App\Actions\Payments\RunMyFatoorahOperation;
+use App\Actions\Admin\Payments\RunMyFatoorahOperation;
 use App\Contracts\Audit\AuditLoggerInterface;
 use App\DTOs\Audit\AuditEntry;
 use App\Enums\AuditAction;
 use App\Enums\ErrorCode;
 use App\Exceptions\DomainException;
 use App\Http\Controllers\Controller;
-use App\Http\Requests\Finance\MyFatoorahRequest;
-use App\Http\Requests\Finance\MyFatoorahResolutionRequest;
-use App\Http\Resources\Shared\MyFatoorahEntityResource;
-use App\Http\Resources\Shared\MyFatoorahOperationResource;
+use App\Http\Requests\Admin\MyFatoorahRequest;
+use App\Http\Requests\Admin\MyFatoorahResolutionRequest;
+use App\Http\Resources\Admin\MyFatoorahEntityResource;
+use App\Http\Resources\Admin\MyFatoorahOperationResource;
 use App\Models\MyFatoorahEntity;
 use App\Models\MyFatoorahOperation;
 use App\Services\Payments\MyFatoorahCatalog;

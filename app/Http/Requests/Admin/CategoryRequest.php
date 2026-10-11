@@ -2,7 +2,6 @@
 
 namespace App\Http\Requests\Admin;
 
-use App\Http\Requests\Shared\ValidatesTranslations;
 use Illuminate\Foundation\Http\FormRequest;
 
 class CategoryRequest extends FormRequest
