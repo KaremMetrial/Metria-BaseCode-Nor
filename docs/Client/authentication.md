@@ -74,7 +74,10 @@ curl --fail-with-body "$API_BASE/locations/countries" \
       "nationality": "Egyptian",
       "calling_code": "+20",
       "currency_code": "EGP",
-      "phone_example": "01012345678"
+      "phone_example": "01012345678",
+      "phone_format": "national_significant",
+      "phone_lengths": [10],
+      "phone_regex": "^(?:1[0-25]\\d{8})$"
     }
   ]
 }
@@ -100,7 +103,7 @@ curl --fail-with-body -X POST "$CLIENT_BASE/auth/otp/request" \
   "message": "A verification code has been sent.",
   "data": {
     "challenge_id": "11111111-1111-4111-8111-111111111111",
-    "expires_in": 300,تم إنشاء
+    "expires_in": 300,
     "resend_after": 60
   }
 }

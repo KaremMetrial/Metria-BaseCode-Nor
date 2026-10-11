@@ -30,7 +30,7 @@ final class CountryController extends Controller
     /**
      * List available countries.
      *
-     * Returns all active countries, ordered for display. Use the ID and calling code for phone authentication.
+     * Returns all active countries, ordered for display. Use the ID and calling code for phone authentication. phone_lengths and phone_regex describe national significant digits (without calling code or national dialing prefix), following the configured mobile-only policy. They are UI hints; server-side validation remains authoritative.
      */
     public function index(): JsonResponse
     {

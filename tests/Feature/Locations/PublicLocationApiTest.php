@@ -124,9 +124,36 @@ class PublicLocationApiTest extends TestCase
         // Pinned deliberately: adding a column to `countries` must not add it to
         // a public response by accident.
         $this->assertSame(
-            ['id', 'iso2', 'iso3', 'name', 'nationality', 'calling_code', 'currency_code', 'phone_example'],
+            ['id', 'iso2', 'iso3', 'name', 'nationality', 'calling_code', 'currency_code', 'phone_example', 'phone_format', 'phone_lengths', 'phone_regex'],
             array_keys($response->json('data.0')),
         );
+    }
+
+    public function test_country_list_and_details_expose_mobile_input_rules(): void
+    {
+        config(['otp.mobile_only' => true]);
+
+        $this->getJson('/api/v1/locations/countries')
+            ->assertOk()
+            ->assertJsonPath('data.0.phone_format', 'national_significant')
+            ->assertJsonPath('data.0.phone_lengths', [10])
+            ->assertJsonPath('data.0.phone_regex', '^(?:1[0-25]\\d{8})$');
+
+        $this->getJson('/api/v1/locations/countries/'.$this->egypt->getKey().'?locale=ar')
+            ->assertOk()
+            ->assertJsonPath('data.phone_lengths', [10])
+            ->assertJsonPath('data.phone_regex', '^(?:1[0-25]\\d{8})$');
+    }
+
+    public function test_country_input_rules_follow_the_authentication_phone_policy(): void
+    {
+        config(['otp.mobile_only' => false]);
+
+        $response = $this->getJson('/api/v1/locations/countries/'.$this->egypt->getKey())
+            ->assertOk()
+            ->assertJsonPath('data.phone_lengths', [8, 9, 10]);
+
+        $this->assertMatchesRegularExpression('/'.$response->json('data.phone_regex').'/', '234567890');
     }
 
     public function test_the_public_payload_returns_only_the_active_locale(): void

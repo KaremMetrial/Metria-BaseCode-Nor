@@ -77,6 +77,15 @@ interface PhoneNumberServiceInterface
     public function exampleNumber(string $regionIso2, PhoneNumberType $type = PhoneNumberType::MOBILE): ?string;
 
     /**
+     * UI hints for national significant digits, excluding the calling code and
+     * national dialing prefix. These do not replace parse() or prove ownership.
+     * Missing numbering plans/types return empty lengths and a null pattern.
+     *
+     * @return array{lengths: list<int>, pattern: string|null}
+     */
+    public function inputMetadata(string $regionIso2, bool $mobileOnly = true): array;
+
+    /**
      * All known geographic region codes (excludes the non-geographic "001").
      *
      * @return list<string>

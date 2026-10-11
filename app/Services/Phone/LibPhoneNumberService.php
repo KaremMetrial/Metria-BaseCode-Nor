@@ -135,6 +135,33 @@ final class LibPhoneNumberService implements PhoneNumberServiceInterface
             : $this->util->format($example, PhoneNumberFormat::INTERNATIONAL);
     }
 
+    public function inputMetadata(string $regionIso2, bool $mobileOnly = true): array
+    {
+        $region = strtoupper(trim($regionIso2));
+        $unavailable = ['lengths' => [], 'pattern' => null];
+
+        if (! $this->isSupportedRegion($region)) {
+            return $unavailable;
+        }
+
+        $metadata = $this->util->getMetadataForRegion($region);
+        $description = $mobileOnly ? $metadata?->getMobile() : $metadata?->getGeneralDesc();
+        $pattern = $description?->getNationalNumberPattern();
+
+        if ($pattern === null || $pattern === '') {
+            return $unavailable;
+        }
+
+        $lengths = $description->getPossibleLength();
+        if ($lengths === []) {
+            $lengths = $metadata->getGeneralDesc()?->getPossibleLength() ?? [];
+        }
+        $lengths = array_values(array_filter($lengths, static fn (int $length): bool => $length > 0));
+        sort($lengths);
+
+        return ['lengths' => $lengths, 'pattern' => '^(?:'.$pattern.')$'];
+    }
+
     public function supportedRegions(): array
     {
         $regions = array_values(array_diff($this->util->getSupportedRegions(), [self::NON_GEOGRAPHICAL_REGION]));

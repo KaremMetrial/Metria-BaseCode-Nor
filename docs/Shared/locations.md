@@ -53,7 +53,10 @@ curl --fail-with-body -X GET "$API_BASE/locations/countries" \
       "nationality": "Egyptian",
       "calling_code": "+20",
       "currency_code": "EGP",
-      "phone_example": "01012345678"
+      "phone_example": "01012345678",
+      "phone_format": "national_significant",
+      "phone_lengths": [10],
+      "phone_regex": "^(?:1[0-25]\\d{8})$"
     }
   ]
 }
@@ -93,7 +96,10 @@ curl --fail-with-body -X GET "$API_BASE/locations/countries/1" \
     "nationality": "Egyptian",
     "calling_code": "+20",
     "currency_code": "EGP",
-    "phone_example": "01012345678"
+    "phone_example": "01012345678",
+    "phone_format": "national_significant",
+    "phone_lengths": [10],
+    "phone_regex": "^(?:1[0-25]\\d{8})$"
   }
 }
 ```
@@ -253,3 +259,32 @@ curl --fail-with-body -X GET "$API_BASE/locations/cities/1" \
 - [CityController.php](../../app/Http/Controllers/Shared/CityController.php)
 - [CountryController.php](../../app/Http/Controllers/Shared/CountryController.php)
 - [GovernorateController.php](../../app/Http/Controllers/Shared/GovernorateController.php)
+
+## قواعد إدخال الهاتف
+
+قائمة الدول وتفاصيل الدولة تعرضان حقولًا محسوبة من libphonenumber المثبتة، وليست أعمدة تُدخل يدويًا أوتُحفظ من الأدمن:
+
+| الحقل | المعنى |
+|---|---|
+| `phone_format` | `national_significant`: أرقام NSN دون كود الدولة أوبادئة الاتصال المحلية، ودون مسافات/شرطات |
+| `phone_lengths` | الأطوال الممكنة كقائمة؛ مصر `[10]`، وقد تقبل دولة أخرى أكثر من طول |
+| `phone_regex` | regex كامل مثبت البداية والنهاية، دون delimiters مثل `/.../`؛ يمكن تمريره إلى `new RegExp(...)` |
+
+مع `OTP_MOBILE_ONLY=true` تأتي القواعد من خطة الموبايل، ومع false تأتي من الخطة العامة. عند عدم وجود metadata أوخطة موبايل يرجع `phone_lengths: []` و`phone_regex: null`؛ لا تفسر ذلك كقاعدة تسمح بكل الأرقام. البيانات الأساسية للدولة تبقى ظاهرة للاستخدام الجغرافي.
+
+مثال مصر: الإدخال الذي تُطبق عليه هذه القواعد هو `1012345678`، وصيغته الدولية `+201012345678`. الرقم المحلي `01012345678` ما زال مقبولًا في OTP ويطبّعه السيرفر، لكنه ليس صيغة NSN التي تصفها هذه الحقول. `phone_example` حقل العرض الموجود سابقًا، وقد يكون دوليًا أو محليًا؛ لا تفترض أنه NSN ولا تحذف كل صفر بادئ عالميًا، لأن بعض خطط الترقيم تعتبره جزءًا من الرقم.
+
+```js
+function matchesPhoneHint(country, nationalDigits) {
+  return /^[0-9]+$/.test(nationalDigits)
+    && country.phone_lengths.includes(nationalDigits.length)
+    && typeof country.phone_regex === 'string'
+    && new RegExp(country.phone_regex).test(nationalDigits);
+}
+
+// عندما يكون حقل الإدخال NSN، وكود الدولة مختارًا بشكل مستقل:
+const phone = country.calling_code + nationalDigits;
+// أرسل { country_id: country.id, phone } إلى OTP.
+```
+
+هذه قواعد مساعدة للواجهة؛ السيرفر يظل المرجع للتحقق من الدولة ونوع الرقم، خصوصًا الدول التي تشترك في calling_code. مطابقة regex لا تثبت وجود الرقم أوملكيته؛ OTP هو إثبات الوصول.

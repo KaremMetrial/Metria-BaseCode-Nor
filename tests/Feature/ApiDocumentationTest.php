@@ -118,6 +118,19 @@ class ApiDocumentationTest extends TestCase
         $this->assertSame('date-time', $payment['properties']['created_at']['format']);
     }
 
+    public function test_country_phone_input_rules_are_documented(): void
+    {
+        $this->app['env'] = 'local';
+
+        $document = $this->getJson('/docs/api.json')->assertOk()->json();
+        $country = $document['components']['schemas']['CountryResource'];
+
+        $this->assertSame('array', $country['properties']['phone_lengths']['type']);
+        $this->assertSame('integer', $country['properties']['phone_lengths']['items']['type']);
+        $this->assertSame(['string', 'null'], $country['properties']['phone_regex']['type']);
+        $this->assertSame('string', $country['properties']['phone_format']['type']);
+    }
+
     public function test_translation_create_and_patch_requirements_are_distinct(): void
     {
         $this->app['env'] = 'local';

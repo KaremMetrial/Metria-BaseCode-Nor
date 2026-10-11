@@ -104,4 +104,32 @@ class PhoneNumberMetadataTest extends TestCase
         $this->assertNull($this->phone->exampleNumber('ZZ'));
         $this->assertNull($this->phone->exampleNumber('001'));
     }
+
+    public function test_mobile_input_rules_match_significant_digits_only(): void
+    {
+        $metadata = $this->phone->inputMetadata(' eg ');
+
+        $this->assertSame([10], $metadata['lengths']);
+        $this->assertMatchesRegularExpression('/'.$metadata['pattern'].'/', '1012345678');
+        $this->assertDoesNotMatchRegularExpression('/'.$metadata['pattern'].'/', '01012345678');
+        $this->assertDoesNotMatchRegularExpression('/'.$metadata['pattern'].'/', '+201012345678');
+        $this->assertDoesNotMatchRegularExpression('/'.$metadata['pattern'].'/', '234567890');
+        $this->assertDoesNotMatchRegularExpression('/'.$metadata['pattern'].'/', '1412345678');
+        $this->assertDoesNotMatchRegularExpression('/'.$metadata['pattern'].'/', '101234567');
+    }
+
+    public function test_mobile_lengths_can_be_inherited_or_have_multiple_values(): void
+    {
+        $this->assertSame([10], $this->phone->inputMetadata('US')['lengths']);
+        $this->assertSame([10, 11], $this->phone->inputMetadata('DE')['lengths']);
+    }
+
+    public function test_missing_regions_and_mobile_plans_have_no_input_rules(): void
+    {
+        foreach (['ZZ', '', '001', 'TA'] as $region) {
+            $this->assertSame(['lengths' => [], 'pattern' => null], $this->phone->inputMetadata($region));
+        }
+
+        $this->assertSame([4], $this->phone->inputMetadata('TA', mobileOnly: false)['lengths']);
+    }
 }

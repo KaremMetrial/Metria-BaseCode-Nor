@@ -199,7 +199,10 @@ curl --fail-with-body "$API_BASE/locations/countries" \
       "nationality": "Egyptian",
       "calling_code": "+20",
       "currency_code": "EGP",
-      "phone_example": "01012345678"
+      "phone_example": "01012345678",
+      "phone_format": "national_significant",
+      "phone_lengths": [10],
+      "phone_regex": "^(?:1[0-25]\\d{8})$"
     }
   ]
 }

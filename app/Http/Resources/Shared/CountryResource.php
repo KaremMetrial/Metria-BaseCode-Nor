@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources\Shared;
 
+use App\Contracts\Phone\PhoneNumberServiceInterface;
 use App\Models\Country;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -23,6 +24,8 @@ class CountryResource extends JsonResource
      */
     public function toArray(Request $request): array
     {
+        $phone = app(PhoneNumberServiceInterface::class)->inputMetadata($this->iso2, (bool) config('otp.mobile_only'));
+
         return [
             'id' => $this->id,
             'iso2' => $this->iso2,
@@ -39,6 +42,19 @@ class CountryResource extends JsonResource
             // number and let the server normalise it; the authoritative
             // numbering plan lives in libphonenumber.
             'phone_example' => $this->phone_example,
+            'phone_format' => 'national_significant',
+            /**
+             * Possible lengths of national significant digits, without the calling code or national dialing prefix.
+             *
+             * @var list<int>
+             */
+            'phone_lengths' => $phone['lengths'],
+            /**
+             * Anchored UI regex without delimiters; null when no matching numbering plan exists.
+             *
+             * @var string|null
+             */
+            'phone_regex' => $phone['pattern'],
         ];
     }
 }
