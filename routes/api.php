@@ -33,6 +33,7 @@ Route::prefix('v1')
         require base_path('routes/shared/locations.php');
         require base_path('routes/shared/categories.php');
         require base_path('routes/shared/config.php');
+        require base_path('routes/shared/links.php');
         require base_path('routes/shared/content.php');
         Route::get('media/{media}', [MediaController::class, 'public'])->whereUuid('media')->middleware('throttle:api')->name('media.public');
         Route::get('media/{media}/avatar', [MediaController::class, 'avatar'])->whereUuid('media')->middleware(['signed', 'throttle:api'])->name('media.avatar');

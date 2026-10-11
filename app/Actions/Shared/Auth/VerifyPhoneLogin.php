@@ -35,6 +35,9 @@ final class VerifyPhoneLogin
                 if (! $user) {
                     $user = new User;
                     $user->forceFill(['name' => '', 'phone' => $phone->e164, 'phone_country_id' => $challenge->country_id, 'type' => $type, 'status' => $type === UserType::VENDOR ? UserStatus::PENDING : UserStatus::ACTIVE, 'locale' => app()->getLocale()]);
+                    if ($type === UserType::CLIENT) {
+                        $user->forceFill(['referral_claim_expires_at' => now()->addHours((int) config('links.referral_claim_hours'))]);
+                    }
                 }
                 $user->forceFill(['phone_verified_at' => now(), 'last_login_at' => now()])->save();
                 $this->wallets->forUser($user, (string) config('payments.default_currency'));

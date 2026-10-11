@@ -55,6 +55,8 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('media', fn (Request $request): Limit => Limit::perMinute((int) config('media.uploads_per_minute'))->by('media:'.$request->user()->id));
 
         RateLimiter::for('support', fn (Request $request): Limit => Limit::perMinute(30)->by('support:'.$request->user()->id));
+        RateLimiter::for('sharing', fn (Request $request): Limit => Limit::perMinute(10)->by('sharing:'.$request->user()->id));
+        RateLimiter::for('referrals', fn (Request $request): Limit => Limit::perMinute(5)->by('referrals:'.$request->user()->id));
 
         RateLimiter::for('api', function (Request $request): Limit {
             return Limit::perMinute((int) config('access.rate_limits.api'))

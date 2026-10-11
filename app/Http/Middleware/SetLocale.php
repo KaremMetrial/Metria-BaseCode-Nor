@@ -27,7 +27,7 @@ final class SetLocale
     public function handle(Request $request, Closure $next): Response
     {
         app()->setLocale((string) config('languages.default', 'en'));
-        if (! $request->is('api/*') && ! $request->expectsJson()) {
+        if (! $request->is('api/*', 'l/*') && ! $request->expectsJson()) {
             return $next($request);
         }
         app()->setLocale($this->resolve($request));

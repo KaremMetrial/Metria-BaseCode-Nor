@@ -13,6 +13,7 @@ final class CompleteProfileRequest extends UpdateProfileRequest
         $terms = app(TermsService::class)->current();
 
         return array_merge(parent::rules(), [
+            'referral_code' => ['sometimes', 'string', 'regex:/^[A-Fa-f0-9]{16}$/'],
             'name' => ['required', 'string', 'max:255'],
             'terms_accepted' => ['required', 'accepted'],
             'terms_version' => ['required', 'string', Rule::in([$terms['version']])],

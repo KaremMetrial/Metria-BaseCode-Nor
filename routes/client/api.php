@@ -20,6 +20,7 @@ Route::prefix('client')->as('client.')->group(function (): void {
             Route::delete('account', [AccountController::class, 'destroy'])->middleware('throttle:login')->name('account.destroy');
             require base_path('routes/shared/payments.php');
             require base_path('routes/client/support.php');
+            require base_path('routes/client/referrals.php');
         });
     });
 });

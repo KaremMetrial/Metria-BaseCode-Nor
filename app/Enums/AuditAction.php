@@ -11,6 +11,8 @@ namespace App\Enums;
  */
 enum AuditAction: string
 {
+    case REFERRAL_CLAIMED = 'referral.claimed';
+    case SHARE_LINK_REVOKED = 'share_link.revoked';
     case PAGE_PUBLISHED = 'page.published';
     case PAGE_ARCHIVED = 'page.archived';
     case CONTACT_REVIEWED = 'contact.reviewed';

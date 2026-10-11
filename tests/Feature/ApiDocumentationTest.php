@@ -73,6 +73,7 @@ class ApiDocumentationTest extends TestCase
                 $this->assertSame($authenticated, $security !== [], $path);
                 if ($authenticated) {
                     $uri = preg_replace('/\{(?:notification|media)\}/', '11111111-1111-4111-8111-111111111111', $route->uri());
+                    $uri = str_replace('{code}', str_repeat('a', 32), $uri);
                     $uri = preg_replace('/\{[^}]+\}/', '1', $uri);
                     $this->json($method, '/'.$uri)->assertUnauthorized()->assertJsonPath('code', 'UNAUTHENTICATED')->assertHeader('X-Request-ID');
                 }

@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Enums\UserStatus;
 use App\Enums\UserType;
 use App\Services\Content\TermsService;
+use Carbon\CarbonImmutable;
 use Database\Factories\UserFactory;
 use Illuminate\Contracts\Translation\HasLocalePreference;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -27,6 +28,7 @@ use Spatie\Permission\Traits\HasRoles;
  * payload.
  *
  * @property Carbon|null $phone_verified_at
+ * @property CarbonImmutable|null $referral_claim_expires_at
  * @property UserType $type
  * @property UserStatus $status
  */
@@ -64,6 +66,7 @@ class User extends Authenticatable implements HasLocalePreference
             'phone_verified_at' => 'datetime',
             'last_login_at' => 'datetime',
             'profile_completed_at' => 'datetime',
+            'referral_claim_expires_at' => 'immutable_datetime',
             'terms_accepted_at' => 'datetime',
             'notification_preferences' => 'array',
             'notifications_version' => 'integer',

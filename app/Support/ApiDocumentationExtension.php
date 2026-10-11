@@ -55,6 +55,8 @@ final class ApiDocumentationExtension extends OperationExtension
                     'contact' => 'Contact submission rate limit: 3 requests/minute per IP, shared with the web form.',
                     'media' => 'Media upload rate limit: 10 requests/minute per account.',
                     'support' => 'Support mutation rate limit: 30 requests/minute per account.',
+                    'sharing' => 'Share link creation rate limit: 10 requests/minute per account.',
+                    'referrals' => 'Referral claim rate limit: 5 requests/minute per account.',
                     default => '',
                 };
             }
@@ -121,6 +123,10 @@ final class ApiDocumentationExtension extends OperationExtension
             return;
         }
         $body = $schema->type;
+        if (str_ends_with($operation->path, '/share-links')) {
+            $this->omitProhibited($body, ['redirect_url', 'url', 'user_id', 'referral_code']);
+            $body->getProperty('target')?->setDescription('Allowed targets: {type: home}, {type: page, slug: published-page-slug}, or {type: category, id: visible-category-id}.');
+        }
         if (str_ends_with($operation->path, '/media')) {
             $this->omitProhibited($body, ['user_id', 'disk', 'path', 'status']);
         }
