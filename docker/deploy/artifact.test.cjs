@@ -13,10 +13,10 @@ test('cPanel archive excludes secrets and dev tools and boots Laravel with cache
   assert.equal(listing.status, 0, listing.stderr);
   assert.ok(!listing.stdout.split('\n').some(file => /(^|\/)\.env$/.test(file)), 'release must not contain runtime secrets');
   assert.equal(spawnSync('tar', ['-xzf', archive, '-C', directory]).status, 0);
-  for (const absent of ['.git', 'tests', 'vendor/phpunit', 'vendor/laravel/boost', 'docker/socketio/node_modules/socket.io-client']) {
+  for (const absent of ['.git', 'tests', 'vendor/phpunit', 'vendor/laravel/boost', 'socketio/node_modules/socket.io-client', 'docker/socketio']) {
     assert.ok(!fs.existsSync(path.join(directory, absent)), `${absent} must not ship`);
   }
-  for (const required of ['vendor/autoload.php', 'lang/en/otp.php', 'lang/ar/otp.php', 'public/build/manifest.json', 'docker/socketio/app.js', 'docker/socketio/node_modules/dotenv', 'docker/socketio/public']) {
+  for (const required of ['vendor/autoload.php', 'lang/en/otp.php', 'lang/ar/otp.php', 'public/build/manifest.json', 'socketio/app.js', 'socketio/node_modules/dotenv', 'socketio/public']) {
     assert.ok(fs.existsSync(path.join(directory, required)), `${required} is needed on cPanel`);
   }
   for (const writable of ['storage/framework/cache/data', 'storage/framework/sessions', 'storage/framework/views', 'storage/logs']) {

@@ -35,3 +35,15 @@ test('an explicit shared dotenv path loads outside the release directory', t => 
   assert.equal(result.status, 0, result.stderr);
   assert.deepEqual(JSON.parse(result.stdout), ['shared-secret', 'shared-host']);
 });
+
+test('Laravel null Redis passwords disable authentication while real passwords are preserved', t => {
+  const directory = fixture(t);
+  for (const password of ['null', '(null)', 'NULL', '', 'actual-test-password']) {
+    const result = spawnSync(process.execPath, ['-e', `require(${JSON.stringify(path.join(directory, 'env.cjs'))}); process.stdout.write(JSON.stringify(process.env.REDIS_PASSWORD || null));`], {
+      cwd: tmpdir(), encoding: 'utf8',
+      env: { NODE_PATH: path.join(__dirname, 'node_modules'), REDIS_PASSWORD: password },
+    });
+    assert.equal(result.status, 0, result.stderr);
+    assert.equal(JSON.parse(result.stdout), password === 'actual-test-password' ? password : null);
+  }
+});

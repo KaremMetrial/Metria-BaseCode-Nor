@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Redis;
 use Predis\Client;
+use Symfony\Component\Process\Process;
 use Tests\TestCase;
 
 class RedisQueueIntegrationTest extends TestCase
@@ -104,6 +105,64 @@ class RedisQueueIntegrationTest extends TestCase
         } finally {
             UserNotification::setEventDispatcher($dispatcher);
             $subscriber->disconnect();
+        }
+    }
+
+    public function test_laravel_token_and_queued_notifications_reach_socket_io(): void
+    {
+        if (! getenv('RUN_SOCKET_INTEGRATION')) {
+            $this->markTestSkipped('Requires Node.js and npm ci in socketio, in addition to isolated Redis.');
+        }
+        config([
+            'queue.default' => 'redis', 'queue.connections.redis.queue' => 'metrial-socket-integration',
+            'realtime.secret' => 'socket-integration-only-secret-at-least-32-bytes',
+            'notifications.email_enabled' => false, 'notifications.fcm_enabled' => false,
+        ]);
+        $user = User::factory()->create(['locale' => 'ar']);
+        $bearer = $user->createToken('socket-integration')->plainTextToken;
+        $token = $this->withToken($bearer)->postJson('/api/v1/client/realtime/token')
+            ->assertOk()->json('data.token');
+        $redis = config('database.redis.'.config('broadcasting.connections.redis.connection', 'default'));
+        $port = (string) (getenv('TEST_LARAVEL_SOCKET_PORT') ?: 16096);
+        $server = new Process(['node', base_path('socketio/app.js')], base_path('socketio'), [
+            'NODE_ENV' => 'test', 'PORT' => $port,
+            'SOCKET_TOKEN_SECRET' => config('realtime.secret'),
+            'REDIS_HOST' => $redis['host'], 'REDIS_PORT' => (string) $redis['port'],
+            'REDIS_PASSWORD' => $redis['password'] ?? '', 'REDIS_DB' => (string) $redis['database'],
+            'REDIS_PREFIX' => config('database.redis.options.prefix'),
+        ]);
+        $client = new Process(['node', base_path('tests/Fixtures/socket-notification-client.cjs')], base_path());
+        $client->setInput(json_encode(['origin' => 'http://127.0.0.1:'.$port, 'token' => $token], JSON_THROW_ON_ERROR));
+        $client->setTimeout(20);
+
+        try {
+            $server->start();
+            $client->start();
+            $this->assertTrue($client->waitUntil(fn (): bool => str_contains($client->getOutput(), '"ready":true')), $client->getErrorOutput().$server->getErrorOutput());
+
+            app(NotificationOutbox::class)->record($user, 'notifications.phone_changed', [], 'integration:socket-delivery');
+            $row = UserNotification::query()->sole();
+            $this->assertSame(0, Artisan::call('notifications:publish-pending'));
+            $this->assertSame(0, Artisan::call('queue:work', [
+                'connection' => 'redis', '--queue' => 'metrial-socket-integration',
+                '--stop-when-empty' => true, '--tries' => 1, '--timeout' => 20,
+            ]));
+            $client->wait();
+
+            $this->assertSame(0, $client->getExitCode(), $client->getErrorOutput());
+            $messages = collect(explode("\n", trim($client->getOutput())))
+                ->map(fn (string $line): array => json_decode($line, true, 512, JSON_THROW_ON_ERROR))
+                ->filter(fn (array $message): bool => isset($message['event']))->keyBy('event');
+            $this->assertSame($row->id, $messages['notification.created']['data']['id']);
+            $this->assertSame('تم تغيير رقم هاتفك.', $messages['notification.created']['data']['body']);
+            $this->assertSame(['version' => 1, 'unread_count' => 1], $messages['notification.state_changed']['data']);
+            $this->assertNotNull($row->fresh()->published_at);
+            $this->assertDatabaseCount('failed_jobs', 0);
+            $this->withToken($bearer)->getJson('/api/v1/client/notifications')
+                ->assertOk()->assertJsonPath('data.items.0.id', $row->id)->assertJsonPath('data.unread_count', 1);
+        } finally {
+            $client->stop();
+            $server->stop();
         }
     }
 

@@ -85,7 +85,7 @@ return [
         |--------------------------------------------------------------------------
         |
         | Publishes events onto Redis pub/sub. The Socket.IO server
-        | (docker/socketio/socket.io.config.cjs) subscribes to the same
+        | (socketio/socket.io.config.cjs) subscribes to the same
         | channels and relays them to connected clients.
         |
         | Only `connection` is honoured by Laravel's RedisBroadcaster: it must

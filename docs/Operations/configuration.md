@@ -33,3 +33,5 @@ The scheduler dispatches pending channel deliveries independently of realtime pu
 
 
 الإشعارات داخل الحساب مستقلة عن قبول جهاز Push للإذن. تفضيلات marketing_push=false افتراضيًا. الاحتفاظ بـAPP_KEY ضروري لفك البيانات المشفرة؛ تغييره عشوائيًا لا يمثل إجراء تدوير مكتملًا.
+
+يجب أن يكون SOCKET_TOKEN_SECRET مضبوطًا ومتطابقًا بين Laravel وSocket.IO، بطول32بايت على الأقل. عند استعمال REDIS_PASSWORD=null في ملف Laravel، يفسره Socket.IO كعدم وجود كلمة مرور أيضًا؛ Redis المحمي يحتاج القيمة الفعلية نفسها في الطرفين. يجب تمرير REDIS_DB كذلك، وعدم خلط قاعدة cache بقاعدة اتصال البث.

@@ -44,14 +44,19 @@ if [[ "$mode" == deploy ]]; then
 else
     [[ -f "$release/artisan" ]] || { echo 'Rollback release does not exist' >&2; exit 1; }
 fi
+# Keep the new Passenger app root usable when rolling back a pre-move release.
+if [[ ! -e "$release/socketio" && -d "$release/docker/socketio" ]]; then
+    ln -s docker/socketio "$release/socketio"
+fi
+[[ -d "$release/socketio" ]] || { echo 'Release is missing the Socket.IO application' >&2; exit 1; }
 mkdir -p "$root/shared/storage/app/public" "$root/shared/storage/app/private" "$root/shared/storage/framework/cache/data" "$root/shared/storage/framework/sessions" "$root/shared/storage/framework/views" "$root/shared/storage/logs" "$root/shared/socket-tmp" "$release/bootstrap/cache"
 # Apache needs traversal to public assets; shared configuration stays account-only.
 chmod 711 "$root" "$root/releases" "$root/shared" "$root/shared/storage" "$root/shared/storage/app"
 chmod 755 "$release" "$root/shared/storage/app/public"
 chmod 600 "$root/shared/.env" "$root/shared/socket.env" "$root/shared/deploy.conf"
 ln -sfn "$root/shared/.env" "$release/.env"
-ln -sfn "$root/shared/socket.env" "$release/docker/socketio/.env"
-ln -sfn "$root/shared/socket-tmp" "$release/docker/socketio/tmp"
+ln -sfn "$root/shared/socket.env" "$release/socketio/.env"
+ln -sfn "$root/shared/socket-tmp" "$release/socketio/tmp"
 if [[ -d "$release/storage" && ! -L "$release/storage" ]]; then rmdir "$release/storage"; fi
 ln -sfn "$root/shared/storage" "$release/storage"
 ln -sfn "$root/shared/storage/app/public" "$release/public/storage"

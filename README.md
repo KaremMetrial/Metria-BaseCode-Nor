@@ -11,7 +11,7 @@ Install Composer and npm dependencies, copy `.env.example` to `.env`, and genera
 ```sh
 composer install
 npm ci
-npm --prefix docker/socketio ci
+npm --prefix socketio ci
 docker compose build
 docker compose up -d
 docker compose exec app php artisan migrate --seed
@@ -49,6 +49,8 @@ Wallet amounts are integer minor units. Payment creation and wallet/refund mutat
 
 ## Realtime
 
+The standalone Node.js application lives in [socketio/](socketio/), beside `routes/`. cPanel uses `socketio/app.js`; see the [application-root and deployment setup](docs/Operations/deployment.md).
+
 Obtain `{data: {token, expires_at}}` from `POST /api/v1/{actor}/realtime/token` using the API bearer token. Connect with Socket.IO websocket transport and `auth: {token}`. The server automatically joins the authenticated user's `private-user.ID` room. Listen for `notification.created`; fetch missed notifications from the authenticated notifications endpoint. Reconnect with a new credential after expiry (120 seconds by default). Blocking/logout revokes HTTP tokens; an already issued realtime credential lasts until its short expiry.
 
 The relay accepts only server-published notification events. Keep `REDIS_PREFIX`, Redis connection settings, and `SOCKET_TOKEN_SECRET` consistent across app, worker, and Socket.IO. Notification delivery is at least once: deduplicate by notification ID. Database, realtime, email and FCM notification delivery are implemented. Email and FCM are disabled until configured and commissioned. Each delivery has durable status and bounded retries; exactly-once external delivery is not guaranteed after a crash.
@@ -61,13 +63,13 @@ vendor/bin/pint --dirty --format agent
 composer validate --strict
 composer audit
 npm audit
-npm --prefix docker/socketio audit
+npm --prefix socketio audit
 npm run build
 docker compose config --quiet
-node --test docker/socketio/auth.test.cjs
+node --test socketio/auth.test.cjs
 ```
 
-SQLite skips five MySQL multi-process concurrency tests and one opt-in Redis integration test. To exercise those tests, use a disposable MySQL database with the full `DB_*` environment, set `RUN_REDIS_INTEGRATION=1` and isolated `REDIS_*` settings, then run the same Laravel suite. Tests migrate/reset the supplied test database. Set `TEST_REDIS_PORT` to a disposable Redis port to run `node --test docker/socketio/auth.test.cjs docker/socketio/integration.test.cjs`.
+SQLite skips five MySQL multi-process concurrency tests and one opt-in Redis integration test. To exercise those tests, use a disposable MySQL database with the full `DB_*` environment, set `RUN_REDIS_INTEGRATION=1` and isolated `REDIS_*` settings, then run the same Laravel suite. Tests migrate/reset the supplied test database. Set `TEST_REDIS_PORT` to a disposable Redis port to run `node --test socketio/auth.test.cjs socketio/integration.test.cjs`.
 
 Larastan/PHPStan runs at level 5 across application, database and route code with no ignored-error baseline: `composer analyse`. The GitHub Actions workflow runs the MySQL/Redis suite, static analysis, audits, build and Socket.IO integration tests; hosted execution still requires the repository to be connected to GitHub.
 
@@ -122,11 +124,11 @@ Prepare the account once, outside `public_html`:
   previous -> releases/... Previous code after a successful activation
 ```
 
-Copy `.env.example` to `shared/.env` and configure production values, a persistent `APP_KEY`, MySQL, Redis, and the selected real payment/SMS providers. Set `CACHE_STORE=redis`, `QUEUE_CONNECTION=redis`, `APP_ENV=production`, `APP_DEBUG=false`, and HTTPS `APP_URL`. For staging, use sandbox provider credentials and `STRIPE_LIVEMODE=false`; the workflow passes `--sandbox-payments` to readiness and rejects live payment mode. Production keeps the default live-payment requirement (`STRIPE_LIVEMODE=true`). Both targets keep production Laravel security settings. Keep the Laravel maintenance driver at `file` so releases share maintenance state through shared storage. Copy `docker/socketio/.env.example` to `shared/socket.env`; match Laravel's `SOCKET_TOKEN_SECRET`, `REDIS_PREFIX`, Redis database and credentials. Copy the two templates in `docker/deploy/` to `shared/deploy.conf` and `shared/mysql-backup.cnf`, then replace their placeholders on the server. Restrict the shared configuration files to the cPanel account (`chmod 600`). The backup account needs permission to dump this database, including triggers. This application has no stored routines; add a host-approved routine backup if you introduce them. Keep `DB_DATABASE` in `deploy.conf` identical to Laravel's database.
+Copy `.env.example` to `shared/.env` and configure production values, a persistent `APP_KEY`, MySQL, Redis, and the selected real payment/SMS providers. Set `CACHE_STORE=redis`, `QUEUE_CONNECTION=redis`, `APP_ENV=production`, `APP_DEBUG=false`, and HTTPS `APP_URL`. For staging, use sandbox provider credentials and `STRIPE_LIVEMODE=false`; the workflow passes `--sandbox-payments` to readiness and rejects live payment mode. Production keeps the default live-payment requirement (`STRIPE_LIVEMODE=true`). Both targets keep production Laravel security settings. Keep the Laravel maintenance driver at `file` so releases share maintenance state through shared storage. Copy `socketio/.env.example` to `shared/socket.env`; match Laravel's `SOCKET_TOKEN_SECRET`, `REDIS_PREFIX`, Redis database and credentials. Copy the two templates in `docker/deploy/` to `shared/deploy.conf` and `shared/mysql-backup.cnf`, then replace their placeholders on the server. Restrict the shared configuration files to the cPanel account (`chmod 600`). The backup account needs permission to dump this database, including triggers. This application has no stored routines; add a host-approved routine backup if you introduce them. Keep `DB_DATABASE` in `deploy.conf` identical to Laravel's database.
 
 Set the PHP domain document root to `/home/ACCOUNT/metrial/current/public`. Keep all other release and shared files outside public document roots. If the hosting plan cannot point a domain at this path, ask the host to configure it; do not expose the application root through `public_html`. PHP-FPM must revalidate symlinked code after a release; use `opcache.validate_timestamps=1` and `opcache.revalidate_freq=0` on this cPanel setup, or arrange a host-managed FPM reload.
 
-Register a production Node.js application with root `/home/ACCOUNT/metrial/current/docker/socketio`, startup file `app.js`, Node.js 22, and a dedicated HTTPS socket subdomain. Serve it through Passenger, with static document root `public` under that app root; create an empty `public` directory if the panel requires one. Never make the Socket.IO application root itself a static document root because it contains the `.env` symlink. The archive already includes production `node_modules`; hosts using CloudLinux Node.js Selector may require their own dependency installation in its managed environment. Rehearse that step on staging before enabling automatic deployment.
+Register a production Node.js application with root `/home/ACCOUNT/metrial/current/socketio`, startup file `app.js`, Node.js 22, and a dedicated HTTPS socket subdomain. Serve it through Passenger, with static document root `public` under that app root; the repository and release artifact include this directory. Never make the Socket.IO application root itself a static document root because it contains the `.env` symlink. The archive already includes production `node_modules`; hosts using CloudLinux Node.js Selector may require their own dependency installation in its managed environment. Rehearse that step on staging before enabling automatic deployment.
 
 Socket.IO uses `dotenv` before reading configuration. It loads `.env` beside the application regardless of the process working directory; `DOTENV_CONFIG_PATH` can select a shared file explicitly. cPanel process environment values take precedence, and its `PORT` takes precedence over `SOCKET_IO_PORT`. The deployment updates Passenger's shared `tmp/restart.txt` marker, following [cPanel's restart procedure](https://docs.cpanel.net/knowledge-base/web-services/how-to-install-a-node.js-application/#restart-the-application). First deployment may need the release unpacked and `current` symlink configured before the panel accepts application registration; resume by running the same uploaded script in `rollback` mode after registration if migrations already succeeded.
 

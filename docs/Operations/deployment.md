@@ -4,6 +4,42 @@
 
 هذا دليل تشغيل لتنفيذ النشر عند الحاجة، ولا يعني أن بيئة إنتاج نُشرت خلال كتابة الوثائق.
 
+## مكان Socket.IO وإعداد cPanel
+
+كود الخدمة مستقل داخل `socketio/` في جذر المشروع بجانب `routes/`:
+
+```text
+project/
+  app/
+  routes/
+  public/              Laravel document root
+  socketio/
+    app.js             Passenger startup file
+    socket.io.config.cjs
+    .env.example
+    package.json
+    public/            Socket application static document root
+    Dockerfile
+  docker/deploy/       Packaging and deployment scripts
+```
+
+في إعداد Node.js Application على cPanel، استخدم:
+
+| الإعداد | القيمة مع آلية releases الحالية |
+|---|---|
+| Application root | `/home/ACCOUNT/metrial/current/socketio` |
+| Startup file | `app.js` |
+| Environment | `production` |
+| Node.js | `22` حسب متطلبات المشروع |
+| Static document root | `/home/ACCOUNT/metrial/current/socketio/public` |
+| Laravel document root | `/home/ACCOUNT/metrial/current/public` |
+
+المسار تمثيلي؛ ACCOUNT حساب الاستضافة، وmetrial مسار النشر المختار. بعض واجهات cPanel تطلب Application root نسبيًا لمجلد الحساب: `metrial/current/socketio`. التطبيق يحتاج دعم Node.js/Passenger وWebSocket واتصال Redis. تغيير موقع المجلد وحده لا يفعّل هذه الخدمات لدى المستضيف. [إعداد Node.js الرسمي في cPanel](https://docs.cpanel.net/knowledge-base/web-services/how-to-install-a-node.js-application/).
+
+عند الرفع اليدوي دون releases استخدم مسار `<project>/socketio`، وثبّت الاعتماديات بـ`npm --prefix socketio ci --omit=dev --ignore-scripts`. جهّز ملف البيئة من `socketio/.env.example` بقيم الخادم الفعلية، أواضبط DOTENV_CONFIG_PATH إلى ملف خاص. حافظ على تطابق SOCKET_TOKEN_SECRET وREDIS_PREFIX وإعدادات Redis مع Laravel، واضبط CORS_ORIGIN لدومين الواجهة. استخدم مدير التطبيقات لإعادة التشغيل. لا تضع كود الخدمة أوأسرارها داخل Laravel public.
+
+لو كان التطبيق مسجلًا قبل النقل، غيّر Application root من `current/docker/socketio` إلى `current/socketio` وحدث static document root ثم أعد تشغيله أثناء تحديث النشر. سكربت rollback يدعم الإصدارات القديمة بإنشاء رابط توافق داخل الإصدار القديم، كي يظل Application root الجديد صالحًا. هذا التغيير يجهّز الملفات؛ لم يغيّر إعدادات حساب cPanel فعليًا.
+
 ## CI/CD on cPanel
 
 GitHub Actions runs PHP formatting, PHPStan, the full MySQL/Redis suite, dependency audits, Socket.IO and deployment regression tests, and an isolated production-container smoke test. Docker is used in CI; cPanel receives a `release.tar.gz` archive containing production Composer/npm dependencies and compiled assets. It contains no application `.env`, development dependencies, or source checkout metadata.
@@ -41,11 +77,11 @@ Prepare the account once, outside `public_html`:
   previous -> releases/... Previous code after a successful activation
 ```
 
-Copy `.env.example` to `shared/.env` and configure production values, a persistent `APP_KEY`, MySQL, Redis, and the selected real payment/SMS providers. Set `CACHE_STORE=redis`, `QUEUE_CONNECTION=redis`, `APP_ENV=production`, `APP_DEBUG=false`, and HTTPS `APP_URL`. For staging, use sandbox provider credentials and `STRIPE_LIVEMODE=false`; the workflow passes `--sandbox-payments` to readiness and rejects live payment mode. Production keeps the default live-payment requirement (`STRIPE_LIVEMODE=true`). Both targets keep production Laravel security settings. Keep the Laravel maintenance driver at `file` so releases share maintenance state through shared storage. Copy `docker/socketio/.env.example` to `shared/socket.env`; match Laravel's `SOCKET_TOKEN_SECRET`, `REDIS_PREFIX`, Redis database and credentials. Copy the two templates in `docker/deploy/` to `shared/deploy.conf` and `shared/mysql-backup.cnf`, then replace their placeholders on the server. Restrict the shared configuration files to the cPanel account (`chmod 600`). The backup account needs permission to dump this database, including triggers. This application has no stored routines; add a host-approved routine backup if you introduce them. Keep `DB_DATABASE` in `deploy.conf` identical to Laravel's database.
+Copy `.env.example` to `shared/.env` and configure production values, a persistent `APP_KEY`, MySQL, Redis, and the selected real payment/SMS providers. Set `CACHE_STORE=redis`, `QUEUE_CONNECTION=redis`, `APP_ENV=production`, `APP_DEBUG=false`, and HTTPS `APP_URL`. For staging, use sandbox provider credentials and `STRIPE_LIVEMODE=false`; the workflow passes `--sandbox-payments` to readiness and rejects live payment mode. Production keeps the default live-payment requirement (`STRIPE_LIVEMODE=true`). Both targets keep production Laravel security settings. Keep the Laravel maintenance driver at `file` so releases share maintenance state through shared storage. Copy `socketio/.env.example` to `shared/socket.env`; match Laravel's `SOCKET_TOKEN_SECRET`, `REDIS_PREFIX`, Redis database and credentials. Copy the two templates in `docker/deploy/` to `shared/deploy.conf` and `shared/mysql-backup.cnf`, then replace their placeholders on the server. Restrict the shared configuration files to the cPanel account (`chmod 600`). The backup account needs permission to dump this database, including triggers. This application has no stored routines; add a host-approved routine backup if you introduce them. Keep `DB_DATABASE` in `deploy.conf` identical to Laravel's database.
 
 Set the PHP domain document root to `/home/ACCOUNT/metrial/current/public`. Keep all other release and shared files outside public document roots. If the hosting plan cannot point a domain at this path, ask the host to configure it; do not expose the application root through `public_html`. PHP-FPM must revalidate symlinked code after a release; use `opcache.validate_timestamps=1` and `opcache.revalidate_freq=0` on this cPanel setup, or arrange a host-managed FPM reload.
 
-Register a production Node.js application with root `/home/ACCOUNT/metrial/current/docker/socketio`, startup file `app.js`, Node.js 22, and a dedicated HTTPS socket subdomain. Serve it through Passenger, with static document root `public` under that app root; create an empty `public` directory if the panel requires one. Never make the Socket.IO application root itself a static document root because it contains the `.env` symlink. The archive already includes production `node_modules`; hosts using CloudLinux Node.js Selector may require their own dependency installation in its managed environment. Rehearse that step on staging before enabling automatic deployment.
+Register a production Node.js application with root `/home/ACCOUNT/metrial/current/socketio`, startup file `app.js`, Node.js 22, and a dedicated HTTPS socket subdomain. Serve it through Passenger, with static document root `public` under that app root; the repository and release artifact include this directory. Never make the Socket.IO application root itself a static document root because it contains the `.env` symlink. The archive already includes production `node_modules`; hosts using CloudLinux Node.js Selector may require their own dependency installation in its managed environment. Rehearse that step on staging before enabling automatic deployment.
 
 Socket.IO uses `dotenv` before reading configuration. It loads `.env` beside the application regardless of the process working directory; `DOTENV_CONFIG_PATH` can select a shared file explicitly. cPanel process environment values take precedence, and its `PORT` takes precedence over `SOCKET_IO_PORT`. The deployment updates Passenger's shared `tmp/restart.txt` marker, following [cPanel's restart procedure](https://docs.cpanel.net/knowledge-base/web-services/how-to-install-a-node.js-application/#restart-the-application). First deployment may need the release unpacked and `current` symlink configured before the panel accepts application registration; resume by running the same uploaded script in `rollback` mode after registration if migrations already succeeded.
 

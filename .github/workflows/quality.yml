@@ -50,6 +50,7 @@ jobs:
       REDIS_PREFIX: metrial_ci_
       REDIS_PASSWORD: 'null'
       RUN_REDIS_INTEGRATION: 1
+      RUN_SOCKET_INTEGRATION: 1
       CACHE_STORE: array
       QUEUE_CONNECTION: sync
       SESSION_DRIVER: array
@@ -76,17 +77,17 @@ jobs:
           git diff --exit-code
       - run: vendor/bin/phpstan analyse --no-progress
       - run: mkdir -p test-results
+      - run: npm --prefix socketio ci
       - run: php artisan test --compact --log-junit test-results/phpunit.xml
       - run: php artisan migrate:fresh --seed --force --no-interaction
       - run: php artisan db:seed --force --no-interaction
       - name: Export and validate the complete OpenAPI specification
         run: php artisan scramble:export --path=test-results/openapi.json --fail-on-unknown --no-interaction
       - run: npm ci
-      - run: npm --prefix docker/socketio ci
       - run: npm audit
-      - run: npm --prefix docker/socketio audit
+      - run: npm --prefix socketio audit
       - run: npm run build
-      - run: node --test docker/socketio/*.test.cjs docker/deploy/*.test.cjs
+      - run: node --test socketio/*.test.cjs docker/deploy/*.test.cjs
         env:
           TEST_REDIS_PORT: 6379
           REDIS_PASSWORD: ''
@@ -135,7 +136,7 @@ jobs:
         uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7
         with:
           context: .
-          file: docker/socketio/Dockerfile
+          file: socketio/Dockerfile
           load: true
           tags: metrial-ci-socket:local
           cache-from: type=gha,scope=socket

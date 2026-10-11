@@ -12,7 +12,7 @@ const previousId = `${'b'.repeat(40)}-122-1`;
 function fixture(t, failure = '') {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'cpanel-deploy-'));
   t.after(() => fs.rmSync(root, { recursive: true, force: true }));
-  for (const directory of ['shared', 'bin', `incoming/${releaseId}`, `releases/${previousId}/docker/socketio`, `releases/${previousId}/public`, 'payload/docker/socketio', 'payload/public']) {
+  for (const directory of ['shared', 'bin', `incoming/${releaseId}`, `releases/${previousId}/socketio`, `releases/${previousId}/public`, 'payload/socketio', 'payload/public']) {
     fs.mkdirSync(path.join(root, directory), { recursive: true });
   }
   fs.writeFileSync(path.join(root, 'payload/artisan'), 'fixture');
@@ -40,6 +40,8 @@ test('deployment backs up before migration, activates code and preserves shared 
   assert.equal(fs.readlinkSync(path.join(root, 'previous')), path.join(root, `releases/${previousId}`));
   assert.equal(fs.readlinkSync(path.join(root, `releases/${releaseId}/.env`)), path.join(root, 'shared/.env'));
   assert.equal(fs.readlinkSync(path.join(root, `releases/${releaseId}/storage`)), path.join(root, 'shared/storage'));
+  assert.equal(fs.readlinkSync(path.join(root, `releases/${releaseId}/socketio/.env`)), path.join(root, 'shared/socket.env'));
+  assert.equal(fs.readlinkSync(path.join(root, `releases/${releaseId}/socketio/tmp`)), path.join(root, 'shared/socket-tmp'));
   assert.match(gunzipSync(fs.readFileSync(path.join(root, `backups/${releaseId}.sql.gz`))).toString(), /CREATE TABLE fixture/);
   assert.ok(calls().indexOf('backup') < calls().indexOf('migrate'));
   assert.ok(calls().indexOf('migrate') < calls().indexOf('db:seed'));
@@ -70,6 +72,19 @@ test('manual rollback activates existing code without reversing the database', t
   assert.ok(!calls().includes('migrate'));
   assert.ok(!calls().includes('db:seed'));
   assert.ok(!calls().includes('migrate:rollback'));
+});
+test('rollback keeps the root Socket.IO path working for a legacy release', t => {
+  const { root, run } = fixture(t);
+  const previousRelease = path.join(root, `releases/${previousId}`);
+  fs.mkdirSync(path.join(previousRelease, 'docker'));
+  fs.renameSync(path.join(previousRelease, 'socketio'), path.join(previousRelease, 'docker/socketio'));
+
+  const result = run('rollback', previousId);
+
+  assert.equal(result.status, 0, result.stderr);
+  assert.equal(fs.readlinkSync(path.join(previousRelease, 'socketio')), 'docker/socketio');
+  assert.equal(fs.realpathSync(path.join(root, 'current/socketio/.env')), path.join(root, 'shared/socket.env'));
+  assert.equal(fs.realpathSync(path.join(root, 'current/socketio/tmp')), path.join(root, 'shared/socket-tmp'));
 });
 test('connection failure is detected before maintenance and backup', t => {
   const { root, run, calls } = fixture(t, 'connectivity');

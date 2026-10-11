@@ -6,3 +6,8 @@ require('dotenv').config({
   override: false,
   quiet: true,
 });
+
+// Laravel's unquoted null sentinel can arrive as a literal string via Compose.
+if (['null', '(null)'].includes((process.env.REDIS_PASSWORD || '').toLowerCase())) {
+  delete process.env.REDIS_PASSWORD;
+}

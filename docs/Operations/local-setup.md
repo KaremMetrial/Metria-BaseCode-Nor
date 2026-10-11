@@ -11,7 +11,7 @@ Install Composer and npm dependencies, copy `.env.example` to `.env`, and genera
 ```sh
 composer install
 npm ci
-npm --prefix docker/socketio ci
+npm --prefix socketio ci
 docker compose build
 docker compose up -d
 docker compose exec app php artisan migrate --seed
