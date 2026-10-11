@@ -1,3 +1,3 @@
 <?php
 
-return ['device_registered' => 'The device has been registered.', 'device_removed' => 'The device has been removed.', 'title' => 'Account notification', 'payment_received' => 'A payment of :amount :currency was added to your wallet.', 'phone_changed' => 'Your phone number has been changed.', 'welcome' => 'Welcome! Complete your profile to get started.', 'new_login' => 'A new sign-in to your account was recorded.'];
+return ['device_registered' => 'The device has been registered.', 'device_removed' => 'The device has been removed.', 'title' => 'Account notification', 'payment_received' => 'A payment of :amount :currency was added to your wallet.', 'phone_changed' => 'Your phone number has been changed.', 'welcome' => 'Welcome! Complete your profile to get started.', 'new_login' => 'A new sign-in to your account was recorded.', 'support_message' => 'A new support message is available.', 'support_status' => 'Your support conversation was updated.'];

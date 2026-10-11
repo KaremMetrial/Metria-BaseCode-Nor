@@ -25,7 +25,7 @@ class DatabaseSeeder extends Seeder
     {
         // Roles and permissions are reference data: always seeded, always
         // idempotent.
-        $this->call(RbacSeeder::class);
+        $this->call([RbacSeeder::class, PageSeeder::class, ContactSettingSeeder::class]);
 
         // Location reference data, in dependency order: a city needs its
         // governorate, which needs its country. All three are idempotent, so this

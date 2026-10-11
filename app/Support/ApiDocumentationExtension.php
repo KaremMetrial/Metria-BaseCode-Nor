@@ -3,6 +3,7 @@
 namespace App\Support;
 
 use App\Enums\ErrorCode;
+use App\Http\Controllers\Shared\MediaController;
 use Dedoc\Scramble\Extensions\OperationExtension;
 use Dedoc\Scramble\Support\Generator\Combined\AnyOf;
 use Dedoc\Scramble\Support\Generator\Header;
@@ -50,6 +51,9 @@ final class ApiDocumentationExtension extends OperationExtension
                     'otp_request' => 'OTP request rate limit: 3 requests/minute per IP.',
                     'otp_verify' => 'OTP verification rate limit: 5 requests/minute per IP.',
                     'webhooks' => 'Webhook rate limit: 300 requests/minute per IP.',
+                    'contact' => 'Contact submission rate limit: 3 requests/minute per IP, shared with the web form.',
+                    'media' => 'Media upload rate limit: 10 requests/minute per account.',
+                    'support' => 'Support mutation rate limit: 30 requests/minute per account.',
                     default => '',
                 };
             }
@@ -65,6 +69,23 @@ final class ApiDocumentationExtension extends OperationExtension
         ]);
         $this->documentRequest($operation);
         $this->documentResponses($operation, $authenticated);
+        if ($route->getControllerClass() === MediaController::class && in_array($route->getActionMethod(), ['download', 'public', 'avatar'], true)) {
+            $response = Response::make(200)->setDescription('File bytes, with nosniff and no-store headers. Private downloads require bearer authentication.');
+            $response->setContent('image/png', Schema::fromType((new StringType)->format('binary')));
+            if ($route->getActionMethod() === 'download') {
+                $response->setContent('application/pdf', Schema::fromType((new StringType)->format('binary')));
+            }
+            $operation->responses = array_values(array_filter($operation->responses, fn ($item): bool => (int) $item->code >= 400));
+            $operation->responses[] = $response;
+            if ($route->getActionMethod() === 'avatar') {
+                $operation->description .= '\n\nUse the complete signed avatar_url from the profile response; it expires after five minutes.';
+                $operation->addParameters([
+                    Parameter::make('signature', 'query')->required(true)->setSchema(Schema::fromType(new StringType)),
+                    Parameter::make('expires', 'query')->required(true)->setSchema(Schema::fromType(new IntegerType)),
+                ]);
+                $operation->responses[] = $this->errorResponse(403);
+            }
+        }
         if ($area === 'webhooks') {
             $this->documentWebhook($operation);
         }
@@ -81,12 +102,47 @@ final class ApiDocumentationExtension extends OperationExtension
             }
         }
 
-        $schema = $this->resolveSchema($operation->requestBodyObject?->content['application/json'] ?? null);
+        $schema = $this->resolveSchema($operation->requestBodyObject?->content['application/json'] ?? $operation->requestBodyObject?->content['multipart/form-data'] ?? null);
         if (! $schema instanceof Schema || ! $schema->type instanceof ObjectType) {
             return;
         }
         $body = $schema->type;
-        if ($body->hasProperty('translations')) {
+        if (str_ends_with($operation->path, '/media')) {
+            $this->omitProhibited($body, ['user_id', 'disk', 'path', 'status']);
+        }
+        if (Str::contains($operation->path, ['/admin/pages']) && $body->hasProperty('translations')) {
+            if ($operation->method === 'patch') {
+                $body = $body->clone();
+                $operation->requestBodyObject->setContent('application/json', Schema::fromType($body));
+                $this->omitProhibited($body, ['slug', 'status', 'published_revision_id', 'terms_version']);
+                $body->addProperty('draft_version', (new IntegerType)->setMin(1));
+                $body->setRequired(['draft_version']);
+            } else {
+                $this->omitProhibited($body, ['draft_version', 'status', 'published_revision_id', 'terms_version']);
+            }
+            $translations = $body->getProperty('translations');
+            if ($translations instanceof ObjectType) {
+                $translations->setRequired($operation->method === 'post' ? [config('languages.default')] : []);
+            }
+        }
+        if (str_ends_with($operation->path, '/contact-messages')) {
+            $this->omitProhibited($body, ['user_id', 'status']);
+        }
+        if (str_contains($operation->path, '/support/conversations') && $body->hasProperty('client_message_id')) {
+            $this->omitProhibited($body, ['user_id', 'sender_id', 'sender_type', 'assigned_to', 'status']);
+        }
+        if (str_ends_with($operation->path, '/contact-settings') && $body->hasProperty('translations')) {
+            $translations = $body->getProperty('translations');
+            if ($translations instanceof ObjectType) {
+                $translations->setRequired([]);
+                foreach ($translations->properties as $translation) {
+                    if ($translation instanceof ObjectType) {
+                        $translation->setRequired([]);
+                    }
+                }
+            }
+        }
+        if ($body->hasProperty('translations') && Str::contains($operation->path, ['/categories', '/locations/'])) {
             if ($operation->method === 'patch') {
                 if (str_contains($operation->path, '/categories/')) {
                     $body = $body->clone();
@@ -170,7 +226,7 @@ final class ApiDocumentationExtension extends OperationExtension
         if (in_array($operation->method, ['post', 'patch', 'delete'], true)) {
             $statuses[] = 409;
         }
-        if (Str::contains($operation->path, ['/otp/', '/reauthenticate/', '/phone/request', '/payments', '/realtime/token', '/devices', '/integrations/myfatoorah'])) {
+        if (Str::contains($operation->path, ['/media', '/profile/avatar', '/otp/', '/reauthenticate/', '/phone/request', '/payments', '/realtime/token', '/devices', '/integrations/myfatoorah'])) {
             $statuses[] = 503;
         }
         if (str_ends_with($operation->path, '/auth/login')) {
@@ -194,6 +250,14 @@ final class ApiDocumentationExtension extends OperationExtension
                 $envelope->addProperty('success', (new BooleanType)->enum([true]));
                 $envelope->addProperty('message', (new StringType)->nullable(true)->setDescription('Localized human-readable message, or null. Use error codes for program logic.'));
                 $data = $envelope->properties['data'] ?? null;
+                if (str_ends_with($operation->path, '/auth/requirements') && $data instanceof ObjectType) {
+                    $data->addProperty('terms_version', new StringType);
+                    $data->addProperty('terms_revision_id', (new IntegerType)->nullable(true));
+                    $data->addProperty('terms_url', (new StringType)->nullable(true));
+                }
+                if (str_ends_with($operation->path, '/admin/contact-settings') && $data instanceof ObjectType) {
+                    $data->addProperty('settings', (new ObjectType)->setDescription('Structured contact settings: phone, whatsapp, social_links and translations keyed by locale. See the update request schema.'));
+                }
                 if ($data instanceof ObjectType && $data->hasProperty('token')) {
                     $data->addProperty('token', (new StringType)->setDescription('Secret token; store securely.'));
                 }

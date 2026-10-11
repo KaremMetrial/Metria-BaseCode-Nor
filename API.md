@@ -1,6 +1,10 @@
 # Metrial API v1 — integration guide
 
-The interactive reference is available at **`/docs/api`** and the OpenAPI 3.1 specification at **`/docs/api.json`**. Scramble generates the reference from the registered routes, Form Requests and response resources. It covers all **127 operations across 111 paths** under `/api/v1`, including public, client, vendor, administrator and payment webhook endpoints.
+> التوثيق المقسّم حسب الميزة والحساب: [docs/README.md](docs/README.md) — يشمل التدفقات الكاملة وأمثلة الطلبات والردود.
+
+For the complete client account and notification flow, with Arabic explanations, cURL requests and JSON responses for every client endpoint, see [CLIENT_API_FLOW.md](CLIENT_API_FLOW.md).
+
+The interactive reference is available at **`/docs/api`** and the OpenAPI 3.1 specification at **`/docs/api.json`**. Scramble generates the reference from the registered routes, Form Requests and response resources. It covers the registered operations under `/api/v1`, including public, client, vendor, administrator and payment webhook endpoints.
 
 Use the interactive reference for the complete endpoint inventory, field constraints, response schemas and required permissions. This guide explains the workflows and shared contracts.
 
@@ -381,3 +385,387 @@ Hosted/embedded checkout, provider tokens and encrypted native wallet tokens are
 Provider-managed subscriptions, marketplace splits, transfers, shipping, MIT, authorization/capture and verification remain subject to account approval, payment-method eligibility, country and API-key permissions. Enabling all local flags cannot guarantee remote availability. The provider's hosted/embedded UI handles eligible payment methods such as cards, local networks, wallets and BNPL without this backend storing card details.
 
 Automated tests exercise the real application routes and database with mocked provider HTTP responses; no private merchant credentials are bundled. Before accepting real funds, validate in your own activated sandbox account: checkout and 3DS, duplicate callbacks, partial/full refunds, each advanced feature you enabled, its webhook delivery, and status reconciliation. Then switch country-specific credentials and live mode together. The browser redirect alone must never be used to mark a payment paid.
+
+## Content pages, contact form and support chat
+
+These are three independent features. Pages and the contact form are public; support chat requires a client account. Administration uses the existing admin bearer token and permissions. Requests use the standard success/error envelope, `X-Locale`, and `X-Request-ID` described above. Examples below use synthetic IDs: replace them with returned values.
+
+### Installation and permissions
+
+Apply migrations, seed the permission registry and the initial content drafts, then rebuild browser assets:
+
+```sh
+php artisan migrate --no-interaction
+php artisan db:seed --class=RbacSeeder --no-interaction
+php artisan db:seed --class=PageSeeder --no-interaction
+php artisan db:seed --class=ContactSettingSeeder --no-interaction
+npm run build
+php artisan queue:restart --no-interaction
+```
+
+The page seeder creates `terms`, `privacy-policy`, `about-us`, `refund-policy` and `contact-us` as **unpublished drafts**. It never invents legal text or replaces existing content. An administrator must supply approved English and Arabic content and publish it. Contact settings start empty. No dependency was added.
+
+Permissions:
+
+| Permission | Operations |
+| --- | --- |
+| `pages.read` | List/read page drafts and revision history |
+| `pages.manage` | Create pages and edit drafts |
+| `pages.publish` | Publish/archive pages |
+| `contact.settings` | Read/update structured contact settings |
+| `contact.read` | Read submitted contact messages |
+| `contact.manage` | Change contact status, also requires contact.read |
+| `support.read` | Support inbox, conversation messages and read markers |
+| `support.reply` | Send staff messages, also requires support.read |
+| `support.manage` | Assignment/status changes, also requires support.read |
+
+The `support-agent` role receives the contact inbox and support chat permissions. Content publication and contact settings remain separately granted. An active super-admin retains the existing bypass. Assignment organizes work; all staff with support.read can view the support inbox.
+
+### Page administration and publication
+
+| Method | Path after `/api/v1` | Input |
+| --- | --- | --- |
+| GET | `/pages` | Public, published pages only |
+| GET | `/pages/{slug}` | Public localized published snapshot |
+| GET | `/admin/pages` | Optional status=draft/published/archived; page |
+| POST | `/admin/pages` | slug, translations, optional navigation fields |
+| GET | `/admin/pages/{page}` | Draft and publication metadata |
+| PATCH | `/admin/pages/{page}` | draft_version and changed fields |
+| POST | `/admin/pages/{page}/publish` | draft_version, requires_acceptance |
+| POST | `/admin/pages/{page}/archive` | draft_version |
+| GET | `/admin/pages/{page}/revisions` | page; immutable bilingual snapshots |
+
+`slug` is permanent. `sort_order`, `show_in_footer`, and `show_in_settings` control navigation. Content uses Markdown; use sanitized `content_html` for HTML rendering, or render `content` with a safe Markdown renderer. Do not insert the raw Markdown/title as HTML.
+
+Create an extra page:
+
+```sh
+curl --fail-with-body "$API_BASE/admin/pages" \
+  -H "Authorization: Bearer $ADMIN_TOKEN" \
+  -H 'Accept: application/json' -H 'Content-Type: application/json' \
+  -d '{"slug":"delivery-info","sort_order":10,"translations":{"en":{"title":"Delivery information","content":"## Delivery\nContact support for delivery questions."},"ar":{"title":"معلومات التوصيل","content":"## التوصيل\nتواصل مع الدعم للاستفسار عن التوصيل."}}}'
+```
+
+HTTP 201 example:
+
+```json
+{"success":true,"message":null,"data":{"id":6,"slug":"delivery-info","status":"draft","draft_version":1,"sort_order":10,"show_in_footer":true,"show_in_settings":true,"translations":{"en":{"title":"Delivery information","content":"## Delivery\nContact support for delivery questions."},"ar":{"title":"معلومات التوصيل","content":"## التوصيل\nتواصل مع الدعم للاستفسار عن التوصيل."}},"published_revision_id":null,"terms_version":null,"published_version":null,"updated_at":"2026-10-11T12:00:00+00:00"}}
+```
+
+For the five seeded pages, find their numeric IDs with GET `/admin/pages` and PATCH the existing draft instead of creating the slug again. A create requires the default language; publication requires nonempty title/content in **both** English and Arabic.
+
+```sh
+curl --fail-with-body -X POST "$API_BASE/admin/pages/6/publish" \
+  -H "Authorization: Bearer $ADMIN_TOKEN" \
+  -H 'Accept: application/json' -H 'Content-Type: application/json' \
+  -d '{"draft_version":1,"requires_acceptance":false}'
+```
+
+HTTP 200 returns the same admin page shape with `status: "published"`, incremented `draft_version`, and `published_revision_id` / `published_version`. Use the returned draft_version for the next edit, publication or archive. Stale versions return `409 RESOURCE_CONFLICT`; reload before changing anything. An uncertain publication retry with an old version cannot create another revision.
+
+GET `/pages/delivery-info` now returns HTTP 200:
+
+```json
+{"success":true,"message":null,"data":{"slug":"delivery-info","title":"Delivery information","content":"## Delivery\nContact support for delivery questions.","content_html":"<h2>Delivery</h2>\n<p>Contact support for delivery questions.</p>\n","version":1,"revision_id":1,"terms_version":null,"navigation":{"sort_order":10,"show_in_footer":true,"show_in_settings":true},"published_at":"2026-10-11T12:01:00+00:00","url":"https://api.example.com/pages/delivery-info?locale=en"}}
+```
+
+Browser URLs `/pages/{slug}?locale=ar` and `?locale=en` render the same published content with RTL/LTR layout. A draft change never changes public content or navigation until publication. Draft and archived pages return 404 publicly. Published terms cannot be archived (`409 RESOURCE_IN_USE`). Revision history is retained; there is no delete or edit-revision API.
+
+### Terms and registration integration
+
+Before the first terms publication, the previous `CLIENT_TERMS_VERSION` / `CLIENT_TERMS_URL` configuration remains effective. After publication, the database-backed terms become authoritative. GET `/client/auth/requirements` returns:
+
+```json
+{"success":true,"message":null,"data":{"terms_version":"terms-1-1","terms_revision_id":3,"terms_url":"https://api.example.com/pages/terms?locale=en","recovery":{"method":"support","support_url":"https://api.example.com/pages/contact-us?locale=en"}}}
+```
+
+Read the published terms and submit the **revision_id of the content actually displayed**. Both the public page and requirements expose this identifier. For managed terms, `terms_revision_id` is required in POST `/client/auth/complete-profile`:
+
+```json
+{"name":"Ahmed Ali","locale":"ar","timezone":"Africa/Cairo","terms_accepted":true,"terms_version":"terms-1-1","terms_revision_id":3}
+```
+
+Success still returns `{user, next_step: "home"}` inside data. `terms_version` is a consent version, while `terms_revision_id` identifies the exact immutable text. A terms publication with requires_acceptance=true advances the consent version; clients must review it again. A publication with false preserves the consent version, and acceptance of an older revision within that same consent version remains valid. The first publication always creates a new consent version.
+
+The server rechecks the consent version and revision inside the transaction. A stale required version or invalid revision returns 422; fetch and display current terms again. Repeating the same acceptance preserves the original record. Historical pre-feature acceptances are retained with a null revision ID, since their exact text was not recorded.
+
+When `contact-us` is published, recovery.support_url points to that browser page. Otherwise CLIENT_SUPPORT_URL remains the fallback. Neither contact submission nor support chat grants automatic account recovery or changes phone ownership.
+
+### Structured contact settings
+
+GET `/contact-settings` is public. GET `/admin/contact-settings` returns `{version, settings}`. PATCH the admin endpoint with the version and changed fields at the top level:
+
+```json
+{"version":1,"phone":"+201012345678","whatsapp":"+201012345678","social_links":[{"label":"Website","url":"https://example.com"}],"translations":{"en":{"intro":"How can we help?","address":"Cairo","working_hours":"Sunday–Thursday, 09:00–17:00"},"ar":{"intro":"كيف نساعدك؟","address":"القاهرة","working_hours":"الأحد–الخميس، 09:00–17:00"}}}
+```
+
+Success returns HTTP 200 with the updated `{version, settings}`. Stale versions return 409. Phone and WhatsApp accept international `+` numbers or null; social URLs accept HTTP(S) only. `social_links` replaces the entire list (send `[]` to clear it). Translation fields merge by locale. Public output is localized:
+
+```json
+{"success":true,"message":null,"data":{"phone":"+201012345678","whatsapp":"+201012345678","social_links":[{"label":"Website","url":"https://example.com"}],"intro":"How can we help?","address":"Cairo","working_hours":"Sunday–Thursday, 09:00–17:00"}}
+```
+
+### Contact us: one-way submissions
+
+POST `/contact-messages` is public, with an optional client bearer token. No email or password is required. A supplied bearer token must be valid and belong to an active client; the server sets user_id itself. The entered phone is a callback number, not proof of account ownership.
+
+```sh
+curl --fail-with-body "$API_BASE/contact-messages" \
+  -H 'Accept: application/json' -H 'Content-Type: application/json' -H 'X-Locale: en' \
+  -d '{"request_id":"11111111-1111-4111-8111-111111111111","name":"Ahmed Ali","country_id":1,"phone":"01012345678","subject":"Cannot sign in","message":"Please contact me about recovering access to my account."}'
+```
+
+Use a country_id returned by `/locations/countries`. HTTP 201:
+
+```json
+{"success":true,"message":"Your message has been received. Keep the reference for follow-up.","data":{"reference":"22222222-2222-4222-8222-222222222222"}}
+```
+
+Reuse request_id with the **same submitted fields** after an uncertain result. Matching retries return the same reference; changed data returns 409 IDEMPOTENCY_CONFLICT. The response never reveals phone/message/account data. There is no public lookup by reference and no chat created automatically. Limits: name 255 characters, subject 200, message 5000; three requests/minute/IP by default, shared with the browser form.
+
+The published `/pages/contact-us` page includes the contact information, country selector and a server-rendered form. Browser submission is protected by CSRF and displays a reference after success.
+
+Admin processing:
+
+| Method | Path after `/api/v1` | Input/response |
+| --- | --- | --- |
+| GET | `/admin/contact-messages` | status, search, page; paginated items/meta |
+| GET | `/admin/contact-messages/{message}` | ID, reference, user_id, name, phone, subject, message, status, timestamps |
+| PATCH | `/admin/contact-messages/{message}/status` | `{"status":"reviewed"}`; updated record |
+
+Statuses are new, reviewed, closed. Search matches exact reference/phone or part of the subject. Staff follow up through the configured contact channel; there is no email requirement or reply endpoint for this form.
+
+### Support chat: client flow
+
+All client paths below require an active client bearer token. Staff use the matching `/admin/support/...` endpoints with permissions.
+
+```sh
+curl --fail-with-body "$API_BASE/client/support/conversations" \
+  -H "Authorization: Bearer $TOKEN" \
+  -H 'Accept: application/json' -H 'Content-Type: application/json' \
+  -d '{"request_id":"33333333-3333-4333-8333-333333333333","client_message_id":"44444444-4444-4444-8444-444444444444","subject":"Help with my payment","body":"My payment is still pending. Can you check it?"}'
+```
+
+HTTP 201:
+
+```json
+{"success":true,"message":null,"data":{"id":12,"subject":"Help with my payment","status":"new","version":2,"last_message_id":81,"client_read_through":0,"staff_read_through":0,"unread_count":0,"created_at":"2026-10-11T12:10:00+00:00","updated_at":"2026-10-11T12:10:00+00:00"}}
+```
+
+A conversation creation is atomic with its first message. Reuse request_id and client_message_id for the same logical creation; changed payload returns 409. A client may create up to five unresolved conversations. Subject is at most 200 characters; message body at most 5000. Messages are plain text: render them as text, never HTML.
+
+| Method | Path after `/api/v1/client` | Input |
+| --- | --- | --- |
+| GET | `/support/conversations` | Optional status, page; newest updated first |
+| POST | `/support/conversations` | request_id, client_message_id, subject, body |
+| GET | `/support/conversations/{conversation}` | Current metadata and read markers |
+| GET | `/support/conversations/{conversation}/messages` | after_id (default 0), per_page (default 50, max 100) |
+| POST | `/support/conversations/{conversation}/messages` | client_message_id, body |
+| PATCH | `/support/conversations/{conversation}/read` | through_message_id |
+| POST | `/support/conversations/{conversation}/close` | version from latest conversation response |
+
+Send a subsequent message:
+
+```json
+{"client_message_id":"55555555-5555-4555-8555-555555555555","body":"The payment reference is 73."}
+```
+
+HTTP 201 example:
+
+```json
+{"success":true,"message":null,"data":{"id":82,"conversation_id":12,"sender_type":"client","is_mine":true,"client_message_id":"55555555-5555-4555-8555-555555555555","body":"The payment reference is 73.","created_at":"2026-10-11T12:11:00+00:00"}}
+```
+
+client_message_id is a UUID generated once per logical message, unique per sender. Retry the same UUID and text after a timeout. Reuse with another text or conversation returns 409. Deduplicate displayed messages by server ID and reconcile optimistic local messages by client_message_id. Another client's conversation returns 404 for every client operation.
+
+GET `/support/conversations/12/messages?after_id=81&per_page=50`:
+
+```json
+{"success":true,"message":null,"data":{"items":[{"id":82,"conversation_id":12,"sender_type":"client","is_mine":true,"client_message_id":"55555555-5555-4555-8555-555555555555","body":"The payment reference is 73.","created_at":"2026-10-11T12:11:00+00:00"}],"meta":{"has_more":false,"next_after_id":82}}}
+```
+
+Messages are sorted by ID ascending. Persist next_after_id **after** storing all returned messages. While has_more=true, request again with after_id=next_after_id. Resume from that ID after reconnect; do not use the largest ID seen in a Socket signal as a substitute for downloaded messages.
+
+Reading a message is explicit:
+
+```json
+{"through_message_id":82}
+```
+
+PATCH the `/read` endpoint only through the last message actually displayed. HTTP 200 returns updated conversation metadata. A marker cannot move backwards or refer to a different conversation. Client unread_count counts staff messages after client_read_through; staff unread_count counts client messages after staff_read_through. The staff marker is shared by the support team. Reading chat does not automatically mark its notification-center entries read; use the notification APIs for those.
+
+### Support chat: staff flow and realtime
+
+| Method | Path after `/api/v1/admin` | Input |
+| --- | --- | --- |
+| GET | `/support/conversations` | Optional status, page |
+| GET | `/support/conversations/{conversation}` | Metadata, including user_id and assigned_to |
+| GET / POST | `/support/conversations/{conversation}/messages` | Same pagination / message body contract as client |
+| PATCH | `/support/conversations/{conversation}/read` | through_message_id |
+| PATCH | `/support/conversations/{conversation}/assignment` | `{"version":2,"assigned_to":7}` or null |
+| PATCH | `/support/conversations/{conversation}/status` | `{"version":3,"status":"resolved"}` |
+
+Assignment requires an active admin with support.read and support.reply. Status/assignment use optimistic versions: reload on 409 instead of overwriting another staff action. Statuses: new, in_progress, resolved, closed. Staff replies move the conversation to in_progress; a reply to resolved reopens it. Closed conversations reject new messages, but an identical retry of a previously accepted message still succeeds. Staff can reopen a closed conversation. Client close requires the current version. Mutation throttling is 30/minute/account, in addition to the general API limiter.
+
+The existing Socket.IO transport carries `notification.created` with an action such as:
+
+```json
+{"screen":"support_conversation","conversation_id":12,"last_message_id":82}
+```
+
+The action is inside the notification payload. There is **no separate** support Socket credential or public conversation room. Obtain `/client/realtime/token` or `/admin/realtime/token` and use the existing private-user connection. On a support action, fetch that conversation's metadata and missing messages from REST. Reconnect also refreshes the conversation list and message history. Refresh conversation metadata when the chat regains focus to update read markers; typing indicators and live read-receipt events are not implemented.
+
+Each message and its generic recipient notifications are saved in the same transaction. Realtime publishing is queued after commit; the scheduled outbox sweep retries pending records after a crash. Staff replies notify the client; client messages notify the assigned eligible staff member or the authorized support inbox when unassigned. Push follows transactional_push preferences. Notification text is generic and does not expose message bodies. Delivery may repeat; use REST IDs as the source of truth. Queue workers, the scheduler and Socket.IO must run.
+
+This release provides the backend APIs, public browser content pages and contact form. A client/admin chat interface connects to these APIs; attachments use the media workflow below; typing indicators are not implemented.
+
+## Media: avatars, page images and support attachments
+
+Uploads use private storage. Public page images are served through an application
+endpoint only while listed in the current published revision. Support downloads
+require a current bearer token and conversation access on every request.
+
+### Upload and inspect
+
+`POST /api/v1/{client|admin}/media` accepts **multipart/form-data**:
+
+| Field | Meaning |
+|---|---|
+| `purpose` | `support`, or `page` for an admin with `pages.manage` |
+| `file` | One uploaded file |
+
+Support accepts JPEG, PNG, WebP (maximum 4096×4096) or PDF, up to 10 MiB.
+Pages accept JPEG, PNG or WebP, up to 5 MiB and 4096×4096. SVG, GIF,
+HTML, executable files and archives are rejected. MIME checks inspect the contents;
+filename extensions must also be allowed. Images are decoded and re-encoded as PNG,
+removing original metadata and trailing data. Returned size/type describe the stored
+file, which may differ from the upload. The original name is display-only.
+
+PDF files require ClamAV. If the scanner is unconfigured, unavailable, times out or
+returns an operational error, the upload fails with `503 PROVIDER_UNAVAILABLE`.
+Detected malware returns `422 VALIDATION_FAILED`. When a scanner is configured,
+images pass through it too. Image re-encoding alone is not an antivirus scan.
+
+```bash
+# API_BASE is your API root, ending in /api/v1.
+curl "$API_BASE/client/media" \
+  -H "Authorization: Bearer $CLIENT_TOKEN" \
+  -H 'Accept: application/json' \
+  -F 'purpose=support' \
+  -F 'file=@./screenshot.jpg'
+```
+
+Example response (`201`; actual URLs are absolute):
+
+```json
+{
+  "success": true,
+  "message": null,
+  "data": {
+    "id": "019a0123-4567-7890-abcd-012345678901",
+    "purpose": "support",
+    "status": "ready",
+    "name": "screenshot.jpg",
+    "mime_type": "image/png",
+    "size": 28412,
+    "width": 1080,
+    "height": 1920,
+    "expires_at": "2026-10-12T12:00:00+00:00",
+    "url": null,
+    "download_url": "/api/v1/client/media/019a0123-4567-7890-abcd-012345678901/download"
+  }
+}
+```
+
+`GET /{client|admin}/media/{id}` returns the same metadata when authorized.
+`GET /{client|admin}/media/{id}/download` returns **file bytes**, not JSON.
+Send the bearer token; for a browser preview fetch an authenticated Blob and use
+an object URL. Do not put tokens in query strings. PDF downloads use attachment
+disposition. Missing, expired and inaccessible media return 404.
+
+`DELETE /{client|admin}/media/{id}` discards your own unattached upload. It becomes
+unreadable immediately; physical deletion is retried by the scheduler. Attached
+files return `409 RESOURCE_IN_USE`. A still-processing upload returns
+`409 RESOURCE_CONFLICT`. After physical deletion, subsequent requests return 404.
+
+Uploads are limited to 10/minute per account, 20 pending/unattached uploads and
+200 MiB stored per uploader by default. Discarded files count toward storage until
+physical deletion succeeds. Unattached uploads expire after 24 hours. A new upload
+request creates a new ID; reuse the returned ID when retrying a message. An upload
+whose response was lost is eventually cleaned up if never attached.
+
+### Send a support message with attachments
+
+Upload the files first, then send their IDs in the existing message endpoint:
+
+```http
+POST /api/v1/client/support/conversations/42/messages
+Authorization: Bearer <client-token>
+Content-Type: application/json
+
+{
+  "client_message_id": "66c52883-39e7-48d8-b90b-d6123298bd71",
+  "body": "This screenshot shows the problem.",
+  "media_ids": ["019a0123-4567-7890-abcd-012345678901"]
+}
+```
+
+The `201` response contains the existing message fields plus `attachments`, an
+array of media metadata objects. Message history includes this array too.
+`body` can be omitted when at least one attachment is supplied. Maximum five
+unique IDs per message. The same fields work for an initial conversation message
+(`POST /client/support/conversations`, with `subject` and `request_id`) and an
+admin reply. Admin uploads require both `support.read` and `support.reply`.
+
+Only ready, unexpired support uploads owned by the sender can be attached. An ID
+can belong to one message only. Attachment linking, message creation and notification
+outbox writes share a transaction. Retry with the same `client_message_id`, body
+and set of media IDs; changed content returns `409 IDEMPOTENCY_CONFLICT`.
+The recipient downloads through their own actor prefix. Staff need `support.read`;
+clients must own the conversation. Notifications contain no attachment bytes or
+private URLs. Closed conversations keep their readable history.
+
+### Add images to a content page
+
+1. An admin uploads with `purpose=page` and keeps the returned ID and `url`.
+2. Include the ID in the page create/PATCH `media_ids` list (maximum 20).
+3. Embed the returned public URL in translated Markdown, e.g. `![Description](URL)`.
+4. Publish through the existing publish endpoint using the latest `draft_version`.
+
+Before publication the public URL returns 404. Authorized admins can preview
+through their authenticated download endpoint. `media_ids` on a PATCH replaces the
+whole draft list; omitting it preserves the list. Draft changes do not alter live
+images until publication. Archiving the page or publishing a revision without an
+image revokes its public URL. Revision history retains its original media IDs.
+Never-published images removed from a draft are scheduled for cleanup; images
+referenced by historical revisions are retained. Existing assets of the same page
+can be reused by other authorized editors; unbound uploads from other users and
+assets belonging to another page cannot be claimed.
+
+### Existing avatar endpoints
+
+`POST /{client|admin|vendor}/profile/avatar` still accepts multipart `avatar`
+(JPEG/PNG/WebP, 2 MiB, 2048×2048). `DELETE` still clears it. New avatar files use the
+same media storage and inspection pipeline. The profile's `avatar_url` is a signed
+five-minute URL. Possession grants access during that period, but replacing/deleting
+the avatar or disabling/closing the account revokes access through this endpoint.
+Old legacy URLs may remain usable until their original five-minute expiry.
+
+### Runtime setup and maintenance
+
+- Run `php artisan migrate --no-interaction`, then
+  `php artisan media:import-avatars --no-interaction`. Import is repeatable and
+  registers existing local files without moving or re-encoding them. Legacy avatars
+  remain readable during transition; new uploads use `MEDIA_DISK`.
+- The runtime needs GD with JPEG, PNG and WebP support for image processing.
+- Set `MEDIA_CLAMAV_BINARY` to the absolute path of `clamscan`, with a readable,
+  current virus-signature database. Keep signatures updated through the deployment's
+  ClamAV maintenance. Do not enable PDF uploads by bypassing the scan.
+- `MEDIA_DISK=local` by default. Use private storage only. Local multi-node deployments
+  need a shared volume. An S3 disk also needs its Laravel filesystem adapter installed
+  and a private bucket policy; changing the default disk does not move existing files.
+- Run the normal Laravel scheduler. `media:prune` runs every ten minutes, processes
+  up to 500 records and retries deletion failures. Operators can run
+  `php artisan media:prune --limit=1000 --no-interaction` manually.
+- Historical page assets and sent chat attachments are retained; this command is
+  not a conversation/history retention policy.

@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\UserStatus;
 use App\Enums\UserType;
+use App\Services\Content\TermsService;
 use Database\Factories\UserFactory;
 use Illuminate\Contracts\Translation\HasLocalePreference;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -115,7 +116,7 @@ class User extends Authenticatable implements HasLocalePreference
     {
         return $this->profile_completed_at !== null && trim($this->name) !== ''
             && $this->phone_verified_at !== null && $this->terms_accepted_at !== null
-            && $this->terms_version === (string) config('client.terms_version');
+            && $this->terms_version === app(TermsService::class)->current()['version'];
     }
 
     /** @return array{security_push: bool, transactional_push: bool, marketing_push: bool} */

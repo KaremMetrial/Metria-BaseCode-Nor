@@ -11,6 +11,13 @@ namespace App\Enums;
  */
 enum AuditAction: string
 {
+    case PAGE_PUBLISHED = 'page.published';
+    case PAGE_ARCHIVED = 'page.archived';
+    case CONTACT_REVIEWED = 'contact.reviewed';
+    case CONTACT_SETTINGS_UPDATED = 'contact.settings_updated';
+    case SUPPORT_STATUS_CHANGED = 'support.status_changed';
+    case SUPPORT_ASSIGNED = 'support.assigned';
+
     // Authentication
     case USER_ACCOUNT_CLOSED = 'user.account_closed';
     case USER_SESSION_REVOKED = 'user.session_revoked';

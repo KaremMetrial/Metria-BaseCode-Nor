@@ -1,5 +1,7 @@
 # Metrial API
 
+> التوثيق المقسّم حسب الميزة والحساب: [docs/README.md](docs/README.md) — يشمل التدفقات الكاملة وأمثلة الطلبات والردود.
+
 Laravel 13 / PHP 8.5 monolith with MySQL 8, Redis queues and authenticated Socket.IO. The API has separate `/api/v1/admin`, `/api/v1/client`, and `/api/v1/vendor` surfaces. See `AUDIT_REPORT.txt` and `AUDIT_EVIDENCE.json` for verification and release conditions.
 
 ## Local setup
@@ -23,9 +25,11 @@ Services: `app`, `web`, `db`, `redis`, `queue`, `scheduler`, `socketio`. Host DB
 
 ## API reference (Scramble)
 
-Open `/docs/api` for the interactive reference or `/docs/api.json` for OpenAPI 3.1. All 127 API operations are documented, including actor authentication, validation, pagination, money/idempotency and signed webhooks. See [API.md](API.md) for integration workflows, examples, errors and documentation maintenance.
+Open `/docs/api` for the interactive reference or `/docs/api.json` for OpenAPI 3.1. All registered API operations are documented, including actor authentication, validation, pagination, money/idempotency and signed webhooks. See [API.md](API.md) for integration workflows, examples, errors and documentation maintenance.
 
 The documentation is available in local/development environments. Staging and production require an active super-admin bearer token. After migrations, export with `php artisan scramble:export --fail-on-unknown --no-interaction` (or run it inside the app container); the default destination is `storage/app/private/openapi.json`. CI validates and uploads the generated specification with the test results. If documentation has been cached, rebuild it after code changes with `scramble:clear` followed by `scramble:cache`.
+
+Content pages, terms consent, the public contact form, and authenticated support chat are documented in [the content and support guide](API.md#content-pages-contact-form-and-support-chat).
 
 ## Authentication and locale
 

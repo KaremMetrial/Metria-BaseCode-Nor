@@ -7,6 +7,7 @@ use App\Models\User;
 use App\Support\Access\RoleRegistry;
 use Database\Seeders\RbacSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Route;
 use Tests\TestCase;
@@ -46,6 +47,12 @@ class ApiDocumentationTest extends TestCase
                 $success = array_filter(array_keys($operation['responses']), fn ($code): bool => $code >= 200 && $code < 300);
                 $this->assertNotEmpty($success, $path);
                 foreach ($operation['responses'] as $code => $response) {
+                    if ($code < 400 && ! isset($response['content']['application/json'])) {
+                        $this->assertArrayHasKey('image/png', $response['content'], $path);
+                        $this->assertSame('binary', $response['content']['image/png']['schema']['format']);
+
+                        continue;
+                    }
                     $schema = $response['content']['application/json']['schema'];
                     $this->assertSame('object', $schema['type'], $path);
                     $this->assertSame([$code < 400], $schema['properties']['success']['enum'], $path);
@@ -60,7 +67,7 @@ class ApiDocumentationTest extends TestCase
                 $authenticated = in_array('auth:sanctum', $route->gatherMiddleware(), true);
                 $this->assertSame($authenticated, $security !== [], $path);
                 if ($authenticated) {
-                    $uri = preg_replace('/\{notification\}/', '11111111-1111-4111-8111-111111111111', $route->uri());
+                    $uri = preg_replace('/\{(?:notification|media)\}/', '11111111-1111-4111-8111-111111111111', $route->uri());
                     $uri = preg_replace('/\{[^}]+\}/', '1', $uri);
                     $this->json($method, '/'.$uri)->assertUnauthorized()->assertJsonPath('code', 'UNAUTHENTICATED')->assertHeader('X-Request-ID');
                 }
@@ -183,11 +190,31 @@ class ApiDocumentationTest extends TestCase
         $this->withToken($ordinaryAdmin->createToken('docs')->plainTextToken)->getJson('/docs/api.json')->assertForbidden();
     }
 
+    public function test_content_and_support_request_schemas_match_write_contracts(): void
+    {
+        $this->app['env'] = 'local';
+        $document = $this->getJson('/docs/api.json')->assertOk()->json();
+        $create = $this->resolve($document, $document['paths']['/admin/pages']['post']['requestBody']['content']['application/json']['schema']);
+        $update = $this->resolve($document, $document['paths']['/admin/pages/{page}']['patch']['requestBody']['content']['application/json']['schema']);
+        $this->assertContains('slug', $create['required']);
+        $this->assertArrayNotHasKey('draft_version', $create['properties']);
+        $this->assertSame(['en'], $create['properties']['translations']['required']);
+        $this->assertSame(['draft_version'], $update['required']);
+        $this->assertArrayNotHasKey('slug', $update['properties']);
+        $this->assertSame([], $update['properties']['translations']['required'] ?? []);
+        foreach (['assignment' => 'assigned_to', 'status' => 'status'] as $path => $field) {
+            $body = $this->resolve($document, $document['paths']['/admin/support/conversations/{conversation}/'.$path]['patch']['requestBody']['content']['application/json']['schema']);
+            $this->assertArrayHasKey($field, $body['properties']);
+            $this->assertContains('version', $body['required']);
+        }
+    }
+
     public function test_openapi_export_has_no_unknown_schema_types(): void
     {
         $path = tempnam(sys_get_temp_dir(), 'metrial-openapi-');
         try {
-            $this->artisan('scramble:export', ['--path' => $path, '--fail-on-unknown' => true])->assertSuccessful();
+            $exitCode = Artisan::call('scramble:export', ['--path' => $path, '--fail-on-unknown' => true]);
+            $this->assertSame(0, $exitCode, Artisan::output());
             $this->assertNotEmpty(json_decode(file_get_contents($path), true, flags: JSON_THROW_ON_ERROR)['paths']);
         } finally {
             unlink($path);

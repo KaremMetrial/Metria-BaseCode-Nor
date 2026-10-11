@@ -13,6 +13,24 @@ use ReflectionClass;
  */
 final class PermissionRegistry
 {
+    public const PAGES_READ = 'pages.read';
+
+    public const PAGES_MANAGE = 'pages.manage';
+
+    public const PAGES_PUBLISH = 'pages.publish';
+
+    public const CONTACT_READ = 'contact.read';
+
+    public const CONTACT_MANAGE = 'contact.manage';
+
+    public const CONTACT_SETTINGS = 'contact.settings';
+
+    public const SUPPORT_READ = 'support.read';
+
+    public const SUPPORT_REPLY = 'support.reply';
+
+    public const SUPPORT_MANAGE = 'support.manage';
+
     // Users
     public const USERS_READ = 'users.read';
 

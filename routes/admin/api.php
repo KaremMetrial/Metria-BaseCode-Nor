@@ -13,6 +13,7 @@ Route::prefix('admin')->as('admin.')->group(function (): void {
     Route::middleware(['auth:sanctum', 'actor:admin', 'throttle:api'])->group(function (): void {
         require base_path('routes/shared/account.php');
         Route::middleware('active')->group(function (): void {
+            require base_path('routes/shared/media.php');
             Route::post('wallets/{wallet}/adjustments', WalletAdjustmentController::class)->whereNumber('wallet')->middleware('can:wallets.adjust')->name('wallet.adjust');
             Route::post('payments/{payment}/refunds', RefundController::class)->whereNumber('payment')->middleware('can:payments.refund')->name('payments.refund');
             Route::get('categories', [CategoryController::class, 'index'])->middleware('can:categories.read')->name('categories.index');
@@ -24,6 +25,8 @@ Route::prefix('admin')->as('admin.')->group(function (): void {
             Route::post('users/{user}/roles', [UserManagementController::class, 'role'])->whereNumber('user')->name('users.roles');
             Route::get('payments', [FinanceController::class, 'payments'])->middleware('can:payments.read')->name('payments.index');
             Route::get('wallets', [FinanceController::class, 'wallets'])->middleware('can:wallets.read')->name('wallets.index');
+            require base_path('routes/admin/content.php');
+            require base_path('routes/admin/support.php');
             require base_path('routes/admin/locations.php');
             require base_path('routes/admin/myfatoorah.php');
         });

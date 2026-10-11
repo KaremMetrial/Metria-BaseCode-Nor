@@ -18,3 +18,5 @@ Schedule::command('notifications:publish-pending')->everyMinute()->withoutOverla
 Schedule::command('sanctum:prune-expired --hours=24')->daily();
 
 Schedule::command('payments:reconcile --limit=25')->everyFiveMinutes()->withoutOverlapping(60);
+
+Schedule::command('media:prune')->everyTenMinutes()->withoutOverlapping();

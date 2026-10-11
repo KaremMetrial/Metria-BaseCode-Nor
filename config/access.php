@@ -18,6 +18,7 @@ return [
     'rate_limits' => [
         // Authenticated API traffic, per user.
         'api' => (int) env('RATE_LIMIT_API', 60),
+        'contact' => (int) env('RATE_LIMIT_CONTACT', 3),
 
         // Webhooks are anonymous, so keyed by IP. Deliberately generous:
         // signature verification is the real control, and providers legitimately

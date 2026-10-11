@@ -1,3 +1,3 @@
 <?php
 
-return ['device_registered' => 'تم تسجيل الجهاز.', 'device_removed' => 'تم حذف الجهاز.', 'title' => 'إشعار الحساب', 'payment_received' => 'أُضيف مبلغ :amount :currency إلى محفظتك.', 'phone_changed' => 'تم تغيير رقم هاتفك.', 'welcome' => 'أهلاً بك! أكمل بيانات حسابك للبدء.', 'new_login' => 'تم تسجيل دخول جديد إلى حسابك.'];
+return ['device_registered' => 'تم تسجيل الجهاز.', 'device_removed' => 'تم حذف الجهاز.', 'title' => 'إشعار الحساب', 'payment_received' => 'أُضيف مبلغ :amount :currency إلى محفظتك.', 'phone_changed' => 'تم تغيير رقم هاتفك.', 'welcome' => 'أهلاً بك! أكمل بيانات حسابك للبدء.', 'new_login' => 'تم تسجيل دخول جديد إلى حسابك.', 'support_message' => 'توجد رسالة دعم جديدة.', 'support_status' => 'تم تحديث محادثة الدعم.'];

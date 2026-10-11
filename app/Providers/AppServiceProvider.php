@@ -48,9 +48,13 @@ class AppServiceProvider extends ServiceProvider
 
     private function configureRateLimiting(): void
     {
-        foreach (['login', 'otp_request', 'otp_verify'] as $limiter) {
+        foreach (['login', 'otp_request', 'otp_verify', 'contact'] as $limiter) {
             RateLimiter::for($limiter, fn (Request $request): Limit => Limit::perMinute((int) config('access.rate_limits.'.$limiter))->by($limiter.':'.$request->ip()));
         }
+
+        RateLimiter::for('media', fn (Request $request): Limit => Limit::perMinute((int) config('media.uploads_per_minute'))->by('media:'.$request->user()->id));
+
+        RateLimiter::for('support', fn (Request $request): Limit => Limit::perMinute(30)->by('support:'.$request->user()->id));
 
         RateLimiter::for('api', function (Request $request): Limit {
             return Limit::perMinute((int) config('access.rate_limits.api'))

@@ -2,37 +2,37 @@
 
 namespace App\Actions\Shared\Profile;
 
+use App\Actions\Shared\Media\ManageMedia;
+use App\Models\Media;
 use App\Models\User;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Storage;
-use RuntimeException;
-use Throwable;
+use Illuminate\Validation\ValidationException;
 
 final class UpdateAvatar
 {
+    public function __construct(private readonly ManageMedia $media) {}
+
     public function execute(User $user, ?UploadedFile $file): User
     {
-        $path = $file?->store('avatars/'.$user->id, 'local');
-        if ($path === false) {
-            throw new RuntimeException('Avatar storage failed.');
-        }
-        try {
-            return DB::transaction(function () use ($user, $path): User {
-                $locked = User::query()->whereKey($user->id)->lockForUpdate()->firstOrFail();
-                $old = $locked->avatar_path;
-                $locked->forceFill(['avatar_path' => $path])->save();
-                if ($old) {
-                    DB::afterCommit(fn () => Storage::disk('local')->delete($old));
-                }
+        $upload = $file ? $this->media->upload($user, $file, 'avatar') : null;
 
-                return $locked;
-            }, 5);
-        } catch (Throwable $exception) {
-            if ($path) {
-                Storage::disk('local')->delete($path);
+        return DB::transaction(function () use ($user, $upload): User {
+            $locked = User::query()->whereKey($user->id)->lockForUpdate()->firstOrFail();
+            $old = $locked->avatar_media_id ? Media::query()->findOrFail($locked->avatar_media_id) : $this->media->importAvatar($locked);
+            if ($upload) {
+                $upload = Media::query()->lockForUpdate()->findOrFail($upload->id);
+                if (! $upload->isAvailable() || $upload->status !== 'ready') {
+                    throw ValidationException::withMessages(['avatar' => [__('media.unavailable')]]);
+                }
+                $upload->forceFill(['status' => 'attached', 'expires_at' => null])->save();
             }
-            throw $exception;
-        }
+            $locked->forceFill(['avatar_path' => $upload?->path, 'avatar_media_id' => $upload?->id])->save();
+            if ($old) {
+                $old->forceFill(['status' => 'deleting'])->save();
+            }
+
+            return $locked;
+        }, 5);
     }
 }

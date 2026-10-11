@@ -41,6 +41,11 @@ final class RoleRegistry
             ],
 
             self::SUPPORT_AGENT => [
+                PermissionRegistry::CONTACT_READ,
+                PermissionRegistry::CONTACT_MANAGE,
+                PermissionRegistry::SUPPORT_READ,
+                PermissionRegistry::SUPPORT_REPLY,
+                PermissionRegistry::SUPPORT_MANAGE,
                 PermissionRegistry::USERS_READ,
                 PermissionRegistry::USERS_BLOCK,
             ],
