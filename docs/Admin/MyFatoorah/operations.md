@@ -78,9 +78,22 @@ Required permission: `myfatoorah.manage`.
 
 ### Path / Query
 
+[قواعد الفلترة والترتيب والأمثلة](../../Shared/list-filtering.md)
+
 | الحقل | المكان | مطلوب | القيود |
 |---|---|---|---|
-| `page` | query | لا | `{"type": "integer", "default": 1, "minimum": 1}` |
+| `sort` | query | لا | `{"type":"string","maxLength":100}` |
+| `sort_type` | query | لا | `{"type":"string","enum":["asc","desc"]}` |
+| `page` | query | لا | `{"type":"integer","default":1,"minimum":1}` |
+| `per_page` | query | لا | `{"type":"integer","default":25,"minimum":1,"maximum":100}` |
+| `operation` | query | لا | `{"type":"string","maxLength":100}` |
+| `status` | query | لا | `{"anyOf":[{"type":"string","enum":["ready","sending","succeeded","rejected","uncertain","confirmed_succeeded","confirmed_failed"]},{"type":"array","items":{"type":"string","enum":["ready","sending","succeeded","rejected","uncertain","confirmed_succeeded","confirmed_failed"]},"minItems":1,"maxItems":20}]}` |
+| `customer_id` | query | لا | `{"type":"integer","minimum":1}` |
+| `actor_id` | query | لا | `{"type":"integer","minimum":1}` |
+| `created_from` | query | لا | `{"type":"string","format":"date"}` |
+| `created_to` | query | لا | `{"type":"string","format":"date"}` |
+
+Allowed fields: id, created_at, updated_at. Up to three comma-separated fields; - means descending. Default: -id. A unique id tie-breaker is appended. Nullable values sort last.
 
 ### مثال الطلب
 
@@ -252,9 +265,26 @@ Required permission: `myfatoorah.manage`.
 
 ### Path / Query
 
+[قواعد الفلترة والترتيب والأمثلة](../../Shared/list-filtering.md)
+
 | الحقل | المكان | مطلوب | القيود |
 |---|---|---|---|
-| `page` | query | لا | `{"type": "integer", "default": 1, "minimum": 1}` |
+| `sort` | query | لا | `{"type":"string","maxLength":100}` |
+| `sort_type` | query | لا | `{"type":"string","enum":["asc","desc"]}` |
+| `page` | query | لا | `{"type":"integer","default":1,"minimum":1}` |
+| `per_page` | query | لا | `{"type":"integer","default":25,"minimum":1,"maximum":100}` |
+| `search` | query | لا | `{"type":"string","minLength":1,"maxLength":100}` |
+| `kind` | query | لا | `{"type":"string","maxLength":40}` |
+| `status` | query | لا | `{"type":"string","maxLength":60}` |
+| `reference` | query | لا | `{"type":"string","maxLength":255}` |
+| `customer_id` | query | لا | `{"type":"integer","minimum":1}` |
+| `needs_refresh` | query | لا | `{"type":"boolean"}` |
+| `created_from` | query | لا | `{"type":"string","format":"date"}` |
+| `created_to` | query | لا | `{"type":"string","format":"date"}` |
+| `synced_from` | query | لا | `{"type":"string","format":"date"}` |
+| `synced_to` | query | لا | `{"type":"string","format":"date"}` |
+
+Allowed fields: id, created_at, updated_at, synced_at. Up to three comma-separated fields; - means descending. Default: -id. A unique id tie-breaker is appended. Nullable values sort last.
 
 ### مثال الطلب
 

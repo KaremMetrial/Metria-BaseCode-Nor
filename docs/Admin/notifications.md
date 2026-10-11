@@ -12,7 +12,7 @@
 4. للمزامنة أرسل since_version، ثم ثبّت until_version على snapshot_version الراجع، وواصل cursor حتى يصبح next_cursor=null.
 5. ارفع مؤشر المزامنة المحلي فقط بعد استهلاك جميع الصفحات، وطبّق archived_at كعلامة حذف من الصندوق.
 
-ادمج بالـid وrevision. في وضع المزامنة لا تُطبّق فلاتر الصندوق status/category. الإشعارات القديمة قد تحتفظ بلغتها وقت الإنشاء. لا يوجد endpoint لإرسال إشعار عشوائي من التطبيق.
+ادمج بالـid وrevision. في وضع المزامنة يُرفض إرسال فلاتر الصندوق status/category بخطأ 422. الإشعارات القديمة قد تحتفظ بلغتها وقت الإنشاء. لا يوجد endpoint لإرسال إشعار عشوائي من التطبيق.
 
 ## المسارات
 
@@ -158,15 +158,23 @@ Rate limit: 60 requests/minute per authenticated user, or per IP for public rout
 
 ### Path / Query
 
+[قواعد الفلترة والترتيب والأمثلة](../Shared/list-filtering.md)
+
 | الحقل | المكان | مطلوب | القيود |
 |---|---|---|---|
-| `status` | query | لا | `{"type": "string", "enum": ["read", "unread", "all"]}` |
-| `category` | query | لا | `{"type": "string", "enum": ["security", "transactional", "marketing"]}` |
-| `per_page` | query | لا | `{"type": "integer", "minimum": 1, "maximum": 100}` |
-| `page` | query | لا | `{"type": "integer", "minimum": 1}` |
-| `since_version` | query | لا | `{"type": "integer", "minimum": 0}` |
-| `until_version` | query | لا | `{"type": "integer", "minimum": 0}` |
-| `cursor` | query | لا | `{"type": "string", "maxLength": 2048}` |
+| `sort` | query | لا | `{"type":"string","maxLength":100}` |
+| `sort_type` | query | لا | `{"type":"string","enum":["asc","desc"]}` |
+| `page` | query | لا | `{"type":"integer","default":1,"minimum":1}` |
+| `per_page` | query | لا | `{"type":"integer","default":25,"minimum":1,"maximum":100}` |
+| `created_from` | query | لا | `{"type":"string","format":"date"}` |
+| `created_to` | query | لا | `{"type":"string","format":"date"}` |
+| `status` | query | لا | `{"type":"string","enum":["read","unread","all"]}` |
+| `category` | query | لا | `{"type":"string","enum":["security","transactional","marketing"]}` |
+| `since_version` | query | لا | `{"type":"integer","minimum":0}` |
+| `until_version` | query | لا | `{"type":"integer","minimum":0}` |
+| `cursor` | query | لا | `{"type":"string","maxLength":2048}` |
+
+Allowed fields: id, created_at. Up to three comma-separated fields; - means descending. Default: -created_at,-id. A unique id tie-breaker is appended. Nullable values sort last.
 
 ### مثال الطلب
 
@@ -265,3 +273,7 @@ curl --fail-with-body -X PATCH "$API_BASE/admin/notifications/aaaaaaaa-aaaa-4aaa
 ## مصدر العقد
 
 - [NotificationController.php](../../app/Http/Controllers/Shared/NotificationController.php)
+
+## فلاتر العرض والمزامنة
+
+عرض الصندوق يدعم `created_from`, `created_to`, `sort=id|created_at` و`sort_type=asc|desc`، أو `sort=-created_at,id`، مع status/category المعتادة. `since_version` يفعّل وضع المزامنة: الجمع معه بفلاتر العرض أو sort/sort_type/page يرجع 422، وكذلك cursor/until_version دون since_version. [العقد الكامل للفلاتر](../Shared/list-filtering.md).

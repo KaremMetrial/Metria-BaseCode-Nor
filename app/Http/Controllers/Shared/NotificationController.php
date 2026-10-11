@@ -3,13 +3,14 @@
 namespace App\Http\Controllers\Shared;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Shared\ListNotificationsRequest;
 use App\Models\User;
 use App\Models\UserNotification;
 use App\Support\ApiResponse;
+use App\Support\ListQuery;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Validation\Rule;
 
 final class NotificationController extends Controller
 {
@@ -18,11 +19,11 @@ final class NotificationController extends Controller
      *
      * Filters by read state and category. Pass since_version to fetch changes including archived tombstones; pass its snapshot_version as until_version and next_cursor on subsequent pages; advance since_version only after all pages are consumed. Unread count excludes archived notifications.
      */
-    public function index(Request $request): JsonResponse
+    public function index(ListNotificationsRequest $request, ListQuery $filters): JsonResponse
     {
-        $data = $request->validate(['status' => ['sometimes', Rule::in(['read', 'unread', 'all'])], 'category' => ['sometimes', Rule::in(['security', 'transactional', 'marketing'])], 'per_page' => ['sometimes', 'integer', 'min:1', 'max:100'], 'page' => ['sometimes', 'integer', 'min:1'], 'since_version' => ['sometimes', 'integer', 'min:0'], 'until_version' => ['sometimes', 'integer', 'min:0'], 'cursor' => ['sometimes', 'string', 'max:2048']]);
+        $data = $request->validated();
 
-        $result = DB::transaction(function () use ($request, $data): array {
+        $result = DB::transaction(function () use ($request, $data, $filters): array {
             $user = User::query()->whereKey($request->user()->id)->lockForUpdate()->firstOrFail();
             $query = UserNotification::query()->where('user_id', $user->id);
             if (isset($data['since_version'])) {
@@ -32,7 +33,7 @@ final class NotificationController extends Controller
 
                 return ['items' => $page->getCollection()->map(fn (UserNotification $row): array => $row->payload()), 'meta' => ['next_cursor' => $page->nextCursor()?->encode(), 'snapshot_version' => $snapshot], 'unread_count' => $this->countUnread($user)];
             } else {
-                $query->whereNull('archived_at')->orderByDesc('created_at')->orderByDesc('id');
+                $filters->apply($query->whereNull('archived_at'), $request);
                 if (($data['status'] ?? 'all') === 'unread') {
                     $query->whereNull('read_at');
                 } elseif (($data['status'] ?? 'all') === 'read') {

@@ -6,7 +6,7 @@
 
 ## تسلسل الاستخدام
 
-اقرأ القائمة ثم تفاصيل التصنيف عند اختياره. البحث العام يدعم keyword وparent_id وsort=sort_order|id وper_page بين 1 و 100. تظهر السلسلة النشطة فقط.
+اقرأ القائمة ثم تفاصيل التصنيف عند اختياره. البحث العام يدعم search أو keyword وparent_id/root_only، وsort بحقول id/sort_order/name وsort_type، وper_page بين 1 و100. تظهر السلسلة النشطة فقط.
 
 الأدمن يقرأ حتى التصنيفات غير النشطة، وينشئ/يعدّل الترجمات والوالد والترتيب. الحد الأقصى لعمق الشجرة 5؛ الدورات تمنع، وحذف تصنيف له أبناء يعيد RESOURCE_IN_USE. صلاحيات الإدارة categories.read/create/update/delete.
 
@@ -25,13 +25,20 @@ Rate limit: 60 requests/minute per authenticated user, or per IP for public rout
 
 ### Path / Query
 
+[قواعد الفلترة والترتيب والأمثلة](../Shared/list-filtering.md)
+
 | الحقل | المكان | مطلوب | القيود |
 |---|---|---|---|
-| `keyword` | query | لا | `{"type": "string", "maxLength": 100}` |
-| `parent_id` | query | لا | `{"type": ["integer", "null"], "minimum": 1}` |
-| `sort` | query | لا | `{"type": "string", "enum": ["sort_order", "id"]}` |
-| `page` | query | لا | `{"type": "integer", "minimum": 1}` |
-| `per_page` | query | لا | `{"type": "integer", "minimum": 1, "maximum": 100}` |
+| `sort` | query | لا | `{"type":"string","maxLength":100}` |
+| `sort_type` | query | لا | `{"type":"string","enum":["asc","desc"]}` |
+| `page` | query | لا | `{"type":"integer","default":1,"minimum":1}` |
+| `per_page` | query | لا | `{"type":"integer","default":25,"minimum":1,"maximum":100}` |
+| `search` | query | لا | `{"type":"string","minLength":1,"maxLength":100}` |
+| `keyword` | query | لا | `{"type":"string","minLength":1,"maxLength":100}` |
+| `parent_id` | query | لا | `{"type":["integer","null"],"minimum":1}` |
+| `root_only` | query | لا | `{"type":"boolean"}` |
+
+Allowed fields: id, sort_order, name. Up to three comma-separated fields; - means descending. Default: sort_order,id. A unique id tie-breaker is appended. Nullable values sort last.
 
 ### مثال الطلب
 

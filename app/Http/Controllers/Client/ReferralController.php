@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Client;
 
 use App\Actions\Client\Referrals\ClaimReferral;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Client\ListReferralsRequest;
 use App\Http\Resources\Client\ReferralResource;
 use App\Http\Resources\Shared\ShareLinkResource;
 use App\Models\Referral;
@@ -11,6 +12,7 @@ use App\Models\ReferralCode;
 use App\Models\ShareLink;
 use App\Services\Links\ShareLinks;
 use App\Support\ApiResponse;
+use App\Support\ListQuery;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -71,10 +73,8 @@ final class ReferralController extends Controller
      * Returns only claim references and registration timestamps, never invitee names, phone numbers or account IDs.
      * Registered means attribution only; the rewards program is not active.
      */
-    public function index(Request $request): JsonResponse
+    public function index(ListReferralsRequest $request, ListQuery $filters): JsonResponse
     {
-        $request->validate(['per_page' => ['sometimes', 'integer', 'min:1', 'max:100']]);
-
-        return ApiResponse::paginated(ReferralResource::class, Referral::query()->where('referrer_id', $request->user()->id)->orderByDesc('id')->paginate($request->integer('per_page', 25)));
+        return ApiResponse::paginated(ReferralResource::class, $filters->apply(Referral::query()->where('referrer_id', $request->user()->id), $request)->paginate($request->perPage()));
     }
 }

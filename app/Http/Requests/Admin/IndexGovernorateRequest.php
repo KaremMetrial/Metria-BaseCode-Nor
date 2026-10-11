@@ -2,32 +2,23 @@
 
 namespace App\Http\Requests\Admin;
 
+use App\Http\Requests\Shared\ListGovernoratesRequest;
 use App\Support\Access\PermissionRegistry;
-use Illuminate\Validation\Rule;
 
-/**
- * GET /admin/locations/governorates?country_id={id}
- *
- * `country_id` is required, not optional. An unfiltered listing of every
- * governorate in the database is not a screen anybody uses -- administrators
- * drill down through a country -- and it is the query that stops being safe the
- * moment a full ISO import is loaded. Requiring the parent turns an accidental
- * full scan into a 422.
- */
-class IndexGovernorateRequest extends AdminFormRequest
+class IndexGovernorateRequest extends ListGovernoratesRequest
 {
-    protected function permission(): string
+    public const FILTERS = parent::FILTERS + ['is_active' => ['boolean'], 'country_id' => ['required', 'integer', 'exists:countries,id']];
+
+    public function authorize(): bool
     {
-        return PermissionRegistry::LOCATIONS_READ;
+        return (bool) $this->user()?->can(PermissionRegistry::LOCATIONS_READ);
     }
 
-    /**
-     * @return array<string, mixed>
-     */
     public function rules(): array
     {
-        return [
-            'country_id' => ['required', 'integer', Rule::exists('countries', 'id')],
-        ];
+        $rules = parent::rules();
+        $rules['country_id'] = ['required', 'integer', 'exists:countries,id'];
+
+        return $rules;
     }
 }

@@ -164,3 +164,7 @@ curl -X DELETE "$CLIENT_BASE/share-links/0123456789abcdef0123456789abcdef" \
 | 429 | تجاوز حد الطلبات؛ claim المستقل محدود بـ5 طلبات/دقيقة والحساب خاضع للحد العام أيضًا |
 
 `referral.claimed` و`share_link.revoked` مسجلان في سجل التدقيق. لا يرسل الربط إشعار مكافأة ولا يغير المحفظة.
+
+## فلترة التاريخ وترتيبه
+
+`GET /api/v1/client/referrals/history` يدعم `id`, `created_from`, `created_to`, `page`, `per_page` (1–100، افتراضي 25)، و`sort=id|created_at` مع `sort_type=asc|desc`، أو `sort=-created_at,id`. لا توجد فلاتر بيانات المدعو أو النقاط؛ التفاصيل في [دليل الفلاتر](../Shared/list-filtering.md).

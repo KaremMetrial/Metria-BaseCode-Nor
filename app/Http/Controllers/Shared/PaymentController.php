@@ -4,10 +4,12 @@ namespace App\Http\Controllers\Shared;
 
 use App\Actions\Shared\Payments\CreatePayment;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Shared\ListPaymentsRequest;
 use App\Http\Requests\Shared\PaymentRequest;
 use App\Http\Resources\Shared\PaymentResource;
 use App\Models\Payment;
 use App\Support\ApiResponse;
+use App\Support\ListQuery;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -18,9 +20,9 @@ final class PaymentController extends Controller
      *
      * Returns only payments owned by the caller, newest first.
      */
-    public function index(Request $request): JsonResponse
+    public function index(ListPaymentsRequest $request, ListQuery $filters): JsonResponse
     {
-        return ApiResponse::paginated(PaymentResource::class, Payment::query()->where('user_id', $request->user()->id)->orderByDesc('id')->paginate(25));
+        return ApiResponse::paginated(PaymentResource::class, $filters->apply(Payment::query()->where('user_id', $request->user()->id), $request)->paginate($request->perPage()));
     }
 
     /**

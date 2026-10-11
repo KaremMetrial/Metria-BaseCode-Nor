@@ -85,7 +85,7 @@ Paginated endpoints return:
 }
 ```
 
-Use `?page=2`. Page size is fixed at 25 except public category search, which accepts `per_page` from 1 to 100, `keyword`, `parent_id` and `sort` (`sort_order` or `id`). Location lists and the current user's wallet list return plain arrays in `data`.
+Paginated lists accept `page` (minimum 1) and `per_page` (1–100, default 25). Each resource has explicit filter and sort allowlists; see [list filtering](list-filtering.md). Location lists and the current user's wallet list retain plain arrays in `data`; support-message and notification sync use their existing streaming contracts.
 
 Admin translation payloads are objects keyed by locale:
 
@@ -188,3 +188,7 @@ Creation requires the English name. Arabic is optional. PATCH permits omitted fi
 تواريخ الموارد عادة ISO-8601، بينما expires_at في Socket token هو Unix seconds. احفظ المبلغ integer بعملة المحفظة؛ خصائص المزود التجاري لها عقد مستقل. لا تعتمد على ترتيب حقول JSON أو message المترجمة؛ استخدم code والحقول الموثقة.
 
 [منع التكرار](outbox-and-idempotency.md) · [الإشعارات](../Client/notifications.md)
+
+## فلترة القوائم وترتيبها
+
+راجع [العقد الموحد للفلاتر والبحث والترتيب](list-filtering.md) للحقول المسموحة لكل مورد، وصيغ sort/sort_type ونطاق التاريخ والمبالغ. القوائم المرقمة تقبل per_page من 1 إلى 100؛ القوائم الكاملة لا تتغير استجابتها. معاملات غير مدعومة ترجع 422، ومزامنة الإشعارات والشات لها معاملات وترتيب ثابتان.

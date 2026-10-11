@@ -7,11 +7,13 @@ use App\Actions\Admin\Location\DeleteCountry;
 use App\Actions\Admin\Location\UpdateCountry;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\DestroyCountryRequest;
+use App\Http\Requests\Admin\ListCountriesRequest;
 use App\Http\Requests\Admin\StoreCountryRequest;
 use App\Http\Requests\Admin\UpdateCountryRequest;
 use App\Http\Resources\Admin\AdminCountryResource;
 use App\Models\Country;
 use App\Support\ApiResponse;
+use App\Support\ListQuery;
 use Illuminate\Http\JsonResponse;
 
 /**
@@ -37,12 +39,9 @@ final class CountryController extends Controller
      *
      * Includes inactive records and all translations. This list is not paginated.
      */
-    public function index(): JsonResponse
+    public function index(ListCountriesRequest $request, ListQuery $filters): JsonResponse
     {
-        $countries = Country::query()
-            ->ordered()
-            ->with('translations')
-            ->get();
+        $countries = $filters->apply(Country::query()->with('translations'), $request)->get();
 
         return ApiResponse::success(AdminCountryResource::collection($countries));
     }

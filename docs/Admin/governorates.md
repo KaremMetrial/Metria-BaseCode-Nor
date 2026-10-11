@@ -37,9 +37,19 @@ Rate limit: 60 requests/minute per authenticated user, or per IP for public rout
 
 ### Path / Query
 
+[قواعد الفلترة والترتيب والأمثلة](../Shared/list-filtering.md)
+
 | الحقل | المكان | مطلوب | القيود |
 |---|---|---|---|
-| `country_id` | query | نعم | `{"type": "integer"}` |
+| `sort` | query | لا | `{"type":"string","maxLength":100}` |
+| `sort_type` | query | لا | `{"type":"string","enum":["asc","desc"]}` |
+| `search` | query | لا | `{"type":"string","minLength":1,"maxLength":100}` |
+| `code` | query | لا | `{"type":"string","maxLength":32}` |
+| `type` | query | لا | `{"type":"string","enum":["governorate","state","province","emirate","region"]}` |
+| `is_active` | query | لا | `{"type":"boolean"}` |
+| `country_id` | query | نعم | `{"type":"integer"}` |
+
+Allowed fields: id, sort_order, name, code. Up to three comma-separated fields; - means descending. Default: sort_order,id. A unique id tie-breaker is appended. Nullable values sort last.
 
 ### مثال الطلب
 

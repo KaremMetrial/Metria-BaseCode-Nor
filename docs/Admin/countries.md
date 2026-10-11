@@ -35,6 +35,21 @@ Rate limit: 60 requests/minute per authenticated user, or per IP for public rout
 
 الصلاحيات في المسار: `locations.read`.
 
+### Path / Query
+
+[دليل الفلاتر والترتيب](../Shared/list-filtering.md)
+
+| الحقل | المكان | مطلوب | القيود |
+|---|---|---|---|
+| `sort` | query | لا | `{"type":"string","maxLength":100}` |
+| `sort_type` | query | لا | `{"type":"string","enum":["asc","desc"]}` |
+| `search` | query | لا | `{"type":"string","minLength":1,"maxLength":100}` |
+| `iso2` | query | لا | `{"type":"string"}` |
+| `calling_code` | query | لا | `{"type":"string","maxLength":8}` |
+| `is_active` | query | لا | `{"type":"boolean"}` |
+
+Allowed fields: id, sort_order, name, iso2, iso3, calling_code. Up to three comma-separated fields; - means descending. Default: sort_order,iso2. A unique id tie-breaker is appended. Nullable values sort last.
+
 ### مثال الطلب
 
 ```sh

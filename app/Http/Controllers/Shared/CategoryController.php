@@ -7,6 +7,7 @@ use App\Http\Requests\Shared\SearchCategoryRequest;
 use App\Http\Resources\Shared\CategoryResource;
 use App\Models\Category;
 use App\Support\ApiResponse;
+use App\Support\ListQuery;
 use Illuminate\Http\JsonResponse;
 
 class CategoryController extends Controller
@@ -16,17 +17,9 @@ class CategoryController extends Controller
      *
      * Returns active categories whose entire ancestor chain is active. Supports keyword, parent, sorting and pagination filters.
      */
-    public function index(SearchCategoryRequest $request): JsonResponse
+    public function index(SearchCategoryRequest $request, ListQuery $filters): JsonResponse
     {
-        $q = Category::query()->visible()->with('translations');
-        if ($request->has('parent_id')) {
-            $q->where('parent_id', $request->validated('parent_id'));
-        }
-        if ($request->filled('keyword')) {
-            $q->whereHas('translations', fn ($t) => $t->where('locale', app()->getLocale())->where('name', 'like', '%'.$request->validated('keyword').'%'));
-        }
-
-        return ApiResponse::paginated(CategoryResource::class, $q->orderBy($request->validated('sort', 'sort_order'))->orderBy('id')->paginate($request->integer('per_page', 25)));
+        return ApiResponse::paginated(CategoryResource::class, $filters->apply(Category::query()->visible()->with('translations'), $request)->paginate($request->perPage()));
     }
 
     /**

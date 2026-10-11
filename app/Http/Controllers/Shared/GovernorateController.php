@@ -3,10 +3,12 @@
 namespace App\Http\Controllers\Shared;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Shared\ListCitiesRequest;
 use App\Http\Resources\Shared\CityResource;
 use App\Http\Resources\Shared\GovernorateResource;
 use App\Models\Governorate;
 use App\Support\ApiResponse;
+use App\Support\ListQuery;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 
@@ -45,17 +47,12 @@ final class GovernorateController extends Controller
      *
      * Returns active cities only when their governorate and country are active. The list is not paginated.
      */
-    public function cities(int $governorate): JsonResponse
+    public function cities(ListCitiesRequest $request, int $governorate, ListQuery $filters): JsonResponse
     {
         $model = $this->visible()->findOrFail($governorate);
+        $query = $model->cities()->active()->with('translations');
 
-        $cities = $model->cities()
-            ->active()
-            ->ordered()
-            ->with('translations')
-            ->get();
-
-        return ApiResponse::success(CityResource::collection($cities));
+        return ApiResponse::success(CityResource::collection($filters->apply($query->getQuery(), $request)->get()));
     }
 
     /**

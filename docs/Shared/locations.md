@@ -30,6 +30,20 @@ Returns all active countries, ordered for display. Use the ID and calling code f
 
 Rate limit: 60 requests/minute per authenticated user, or per IP for public routes.
 
+### Path / Query
+
+[دليل الفلاتر والترتيب](../Shared/list-filtering.md)
+
+| الحقل | المكان | مطلوب | القيود |
+|---|---|---|---|
+| `sort` | query | لا | `{"type":"string","maxLength":100}` |
+| `sort_type` | query | لا | `{"type":"string","enum":["asc","desc"]}` |
+| `search` | query | لا | `{"type":"string","minLength":1,"maxLength":100}` |
+| `iso2` | query | لا | `{"type":"string"}` |
+| `calling_code` | query | لا | `{"type":"string","maxLength":8}` |
+
+Allowed fields: id, sort_order, name, iso2, iso3, calling_code. Up to three comma-separated fields; - means descending. Default: sort_order,iso2. A unique id tie-breaker is appended. Nullable values sort last.
+
 ### مثال الطلب
 
 ```sh
@@ -112,9 +126,18 @@ Rate limit: 60 requests/minute per authenticated user, or per IP for public rout
 
 ### Path / Query
 
+[قواعد الفلترة والترتيب والأمثلة](../Shared/list-filtering.md)
+
 | الحقل | المكان | مطلوب | القيود |
 |---|---|---|---|
-| `country` | path | نعم | `{"type": "integer"}` |
+| `country` | path | نعم | `{"type":"integer"}` |
+| `sort` | query | لا | `{"type":"string","maxLength":100}` |
+| `sort_type` | query | لا | `{"type":"string","enum":["asc","desc"]}` |
+| `search` | query | لا | `{"type":"string","minLength":1,"maxLength":100}` |
+| `code` | query | لا | `{"type":"string","maxLength":32}` |
+| `type` | query | لا | `{"type":"string","enum":["governorate","state","province","emirate","region"]}` |
+
+Allowed fields: id, sort_order, name, code. Up to three comma-separated fields; - means descending. Default: sort_order,id. A unique id tie-breaker is appended. Nullable values sort last.
 
 ### مثال الطلب
 
@@ -184,9 +207,18 @@ Rate limit: 60 requests/minute per authenticated user, or per IP for public rout
 
 ### Path / Query
 
+[قواعد الفلترة والترتيب والأمثلة](../Shared/list-filtering.md)
+
 | الحقل | المكان | مطلوب | القيود |
 |---|---|---|---|
-| `governorate` | path | نعم | `{"type": "integer"}` |
+| `governorate` | path | نعم | `{"type":"integer"}` |
+| `sort` | query | لا | `{"type":"string","maxLength":100}` |
+| `sort_type` | query | لا | `{"type":"string","enum":["asc","desc"]}` |
+| `search` | query | لا | `{"type":"string","minLength":1,"maxLength":100}` |
+| `code` | query | لا | `{"type":"string","maxLength":32}` |
+| `postal_code` | query | لا | `{"type":"string","maxLength":32}` |
+
+Allowed fields: id, sort_order, name, code. Up to three comma-separated fields; - means descending. Default: sort_order,id. A unique id tie-breaker is appended. Nullable values sort last.
 
 ### مثال الطلب
 

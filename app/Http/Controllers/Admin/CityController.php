@@ -13,6 +13,7 @@ use App\Http\Requests\Admin\UpdateCityRequest;
 use App\Http\Resources\Admin\AdminCityResource;
 use App\Models\City;
 use App\Support\ApiResponse;
+use App\Support\ListQuery;
 use Illuminate\Http\JsonResponse;
 
 /**
@@ -27,15 +28,9 @@ final class CityController extends Controller
      *
      * Requires the governorate_id query parameter. Includes inactive records and all translations. This list is not paginated.
      */
-    public function index(IndexCityRequest $request): JsonResponse
+    public function index(IndexCityRequest $request, ListQuery $filters): JsonResponse
     {
-        $cities = City::query()
-            ->forGovernorate((int) $request->validated('governorate_id'))
-            ->ordered()
-            ->with('translations')
-            ->get();
-
-        return ApiResponse::success(AdminCityResource::collection($cities));
+        return ApiResponse::success(AdminCityResource::collection($filters->apply(City::query()->with('translations'), $request)->get()));
     }
 
     /**

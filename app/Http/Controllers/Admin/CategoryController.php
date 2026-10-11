@@ -5,9 +5,11 @@ namespace App\Http\Controllers\Admin;
 use App\Actions\Admin\Category\SaveCategory;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\CategoryRequest;
+use App\Http\Requests\Admin\ListCategoriesRequest;
 use App\Http\Resources\Shared\CategoryResource;
 use App\Models\Category;
 use App\Support\ApiResponse;
+use App\Support\ListQuery;
 use Illuminate\Http\JsonResponse;
 
 final class CategoryController extends Controller
@@ -17,9 +19,9 @@ final class CategoryController extends Controller
      *
      * Includes inactive categories and translations; ordered by sort order and ID.
      */
-    public function index(): JsonResponse
+    public function index(ListCategoriesRequest $request, ListQuery $filters): JsonResponse
     {
-        return ApiResponse::paginated(CategoryResource::class, Category::query()->with('translations')->orderBy('sort_order')->orderBy('id')->paginate(25));
+        return ApiResponse::paginated(CategoryResource::class, $filters->apply(Category::query()->with('translations'), $request)->paginate($request->perPage()));
     }
 
     /**

@@ -34,9 +34,23 @@ Rate limit: 60 requests/minute per authenticated user, or per IP for public rout
 
 ### Path / Query
 
+[قواعد الفلترة والترتيب والأمثلة](../Shared/list-filtering.md)
+
 | الحقل | المكان | مطلوب | القيود |
 |---|---|---|---|
-| `page` | query | لا | `{"type": "integer", "default": 1, "minimum": 1}` |
+| `sort` | query | لا | `{"type":"string","maxLength":100}` |
+| `sort_type` | query | لا | `{"type":"string","enum":["asc","desc"]}` |
+| `page` | query | لا | `{"type":"integer","default":1,"minimum":1}` |
+| `per_page` | query | لا | `{"type":"integer","default":25,"minimum":1,"maximum":100}` |
+| `status` | query | لا | `{"anyOf":[{"type":"string","enum":["pending","processing","paid","failed","partially_refunded","refunded"]},{"type":"array","items":{"type":"string","enum":["pending","processing","paid","failed","partially_refunded","refunded"]},"minItems":1,"maxItems":20}]}` |
+| `provider` | query | لا | `{"type":"string","enum":["stripe","myfatoorah"]}` |
+| `currency` | query | لا | `{"type":"string"}` |
+| `created_from` | query | لا | `{"type":"string","format":"date"}` |
+| `created_to` | query | لا | `{"type":"string","format":"date"}` |
+| `amount_min` | query | لا | `{"type":"integer","minimum":0,"maximum":9000000000000000}` |
+| `amount_max` | query | لا | `{"type":"integer","minimum":0,"maximum":9000000000000000}` |
+
+Allowed fields: id, created_at, amount. Up to three comma-separated fields; - means descending. Default: -id. A unique id tie-breaker is appended. Nullable values sort last.
 
 ### مثال الطلب
 

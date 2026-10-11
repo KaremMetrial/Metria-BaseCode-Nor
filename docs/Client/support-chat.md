@@ -37,10 +37,20 @@ Rate limit: 60 requests/minute per authenticated user, or per IP for public rout
 
 ### Path / Query
 
+[قواعد الفلترة والترتيب والأمثلة](../Shared/list-filtering.md)
+
 | الحقل | المكان | مطلوب | القيود |
 |---|---|---|---|
-| `status` | query | لا | `{"type": "string", "enum": ["new", "in_progress", "resolved", "closed"]}` |
-| `page` | query | لا | `{"type": "integer", "default": 1, "minimum": 1}` |
+| `sort` | query | لا | `{"type":"string","maxLength":100}` |
+| `sort_type` | query | لا | `{"type":"string","enum":["asc","desc"]}` |
+| `page` | query | لا | `{"type":"integer","default":1,"minimum":1}` |
+| `per_page` | query | لا | `{"type":"integer","default":25,"minimum":1,"maximum":100}` |
+| `search` | query | لا | `{"type":"string","minLength":1,"maxLength":100}` |
+| `status` | query | لا | `{"anyOf":[{"type":"string","enum":["new","in_progress","resolved","closed"]},{"type":"array","items":{"type":"string","enum":["new","in_progress","resolved","closed"]},"minItems":1,"maxItems":20}]}` |
+| `created_from` | query | لا | `{"type":"string","format":"date"}` |
+| `created_to` | query | لا | `{"type":"string","format":"date"}` |
+
+Allowed fields: id, created_at, updated_at. Up to three comma-separated fields; - means descending. Default: -updated_at,-id. A unique id tie-breaker is appended. Nullable values sort last.
 
 ### مثال الطلب
 

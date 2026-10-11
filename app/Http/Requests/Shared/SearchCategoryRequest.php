@@ -2,18 +2,31 @@
 
 namespace App\Http\Requests\Shared;
 
-use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Validation\Rule;
+use Illuminate\Validation\Validator;
 
-class SearchCategoryRequest extends FormRequest
+class SearchCategoryRequest extends ListRequest
 {
-    public function authorize(): bool
-    {
-        return true;
-    }
+    public const SORTS = ['id', 'sort_order', 'name'];
 
-    public function rules(): array
+    public const DEFAULT_SORT = 'sort_order,id';
+
+    public const TRANSLATED = 'name';
+
+    public const VIRTUAL_FILTERS = ['keyword'];
+
+    public const FILTERS = ['keyword' => ['string', 'min:1', 'max:100'], 'parent_id' => ['nullable', 'integer', 'min:1']];
+
+    public const NULLS = ['root_only' => 'parent_id'];
+
+    public const DATES = [];
+
+    protected function validateFilters(Validator $validator): void
     {
-        return ['keyword' => ['sometimes', 'string', 'max:100'], 'parent_id' => ['sometimes', 'nullable', 'integer', 'min:1'], 'sort' => ['sometimes', Rule::in(['sort_order', 'id'])], 'page' => ['sometimes', 'integer', 'min:1'], 'per_page' => ['sometimes', 'integer', 'min:1', 'max:100']];
+        if ($this->has(['search', 'keyword']) && $this->input('search') !== $this->input('keyword')) {
+            $validator->errors()->add('keyword', __('filters.conflict'));
+        }
+        if ($this->has('root_only') && $this->has('parent_id') && $this->boolean('root_only') !== ($this->input('parent_id') === null)) {
+            $validator->errors()->add('root_only', __('filters.conflict'));
+        }
     }
 }

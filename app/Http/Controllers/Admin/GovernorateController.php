@@ -13,6 +13,7 @@ use App\Http\Requests\Admin\UpdateGovernorateRequest;
 use App\Http\Resources\Admin\AdminGovernorateResource;
 use App\Models\Governorate;
 use App\Support\ApiResponse;
+use App\Support\ListQuery;
 use Illuminate\Http\JsonResponse;
 
 /**
@@ -31,15 +32,9 @@ final class GovernorateController extends Controller
      *
      * Requires the country_id query parameter. Includes inactive records and all translations. This list is not paginated.
      */
-    public function index(IndexGovernorateRequest $request): JsonResponse
+    public function index(IndexGovernorateRequest $request, ListQuery $filters): JsonResponse
     {
-        $governorates = Governorate::query()
-            ->forCountry((int) $request->validated('country_id'))
-            ->ordered()
-            ->with('translations')
-            ->get();
-
-        return ApiResponse::success(AdminGovernorateResource::collection($governorates));
+        return ApiResponse::success(AdminGovernorateResource::collection($filters->apply(Governorate::query()->with('translations'), $request)->get()));
     }
 
     /**

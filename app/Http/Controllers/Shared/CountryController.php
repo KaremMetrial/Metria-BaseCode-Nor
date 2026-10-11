@@ -3,10 +3,13 @@
 namespace App\Http\Controllers\Shared;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Shared\ListCountriesRequest;
+use App\Http\Requests\Shared\ListGovernoratesRequest;
 use App\Http\Resources\Shared\CountryResource;
 use App\Http\Resources\Shared\GovernorateResource;
 use App\Models\Country;
 use App\Support\ApiResponse;
+use App\Support\ListQuery;
 use Illuminate\Http\JsonResponse;
 
 /**
@@ -32,13 +35,9 @@ final class CountryController extends Controller
      *
      * Returns all active countries, ordered for display. Use the ID and calling code for phone authentication. phone_lengths and phone_regex describe national significant digits (without calling code or national dialing prefix), following the configured mobile-only policy. They are UI hints; server-side validation remains authoritative.
      */
-    public function index(): JsonResponse
+    public function index(ListCountriesRequest $request, ListQuery $filters): JsonResponse
     {
-        $countries = Country::query()
-            ->active()
-            ->ordered()
-            ->with('translations')
-            ->get();
+        $countries = $filters->apply(Country::query()->active()->with('translations'), $request)->get();
 
         return ApiResponse::success(CountryResource::collection($countries));
     }
@@ -66,19 +65,11 @@ final class CountryController extends Controller
      *
      * Returns active governorates of an active country. The list is not paginated.
      */
-    public function governorates(int $country): JsonResponse
+    public function governorates(ListGovernoratesRequest $request, int $country, ListQuery $filters): JsonResponse
     {
-        // Resolved first (and scoped to active) so a request for the governorates
-        // of a deactivated or nonexistent country is a clean 404 rather than an
-        // empty list that looks like "this country has no divisions".
         $model = Country::query()->active()->findOrFail($country);
+        $query = $model->governorates()->active()->with('translations');
 
-        $governorates = $model->governorates()
-            ->active()
-            ->ordered()
-            ->with('translations')
-            ->get();
-
-        return ApiResponse::success(GovernorateResource::collection($governorates));
+        return ApiResponse::success(GovernorateResource::collection($filters->apply($query->getQuery(), $request)->get()));
     }
 }

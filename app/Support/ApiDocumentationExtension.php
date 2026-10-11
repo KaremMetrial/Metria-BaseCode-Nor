@@ -5,6 +5,8 @@ namespace App\Support;
 use App\Enums\ErrorCode;
 use App\Http\Controllers\Shared\AppConfigController;
 use App\Http\Controllers\Shared\MediaController;
+use App\Http\Requests\Shared\ListRequest;
+use App\Http\Requests\Shared\ListSupportMessagesRequest;
 use Dedoc\Scramble\Extensions\OperationExtension;
 use Dedoc\Scramble\Support\Generator\Combined\AnyOf;
 use Dedoc\Scramble\Support\Generator\Header;
@@ -22,6 +24,8 @@ use Dedoc\Scramble\Support\Generator\Types\StringType;
 use Dedoc\Scramble\Support\Generator\Types\UnknownType;
 use Dedoc\Scramble\Support\RouteInfo;
 use Illuminate\Support\Str;
+use ReflectionMethod;
+use ReflectionNamedType;
 
 final class ApiDocumentationExtension extends OperationExtension
 {
@@ -71,6 +75,7 @@ final class ApiDocumentationExtension extends OperationExtension
                 ->description('Overrides the response language for this request.'),
         ]);
         $this->documentRequest($operation);
+        $this->documentListParameters($operation, $routeInfo);
         $this->documentResponses($operation, $authenticated);
         if ($route->getControllerClass() === AppConfigController::class) {
             $operation->addParameters([
@@ -218,6 +223,71 @@ final class ApiDocumentationExtension extends OperationExtension
         }
     }
 
+    private function documentListParameters(Operation $operation, RouteInfo $routeInfo): void
+    {
+        if ($operation->method !== 'get') {
+            return;
+        }
+        $method = new ReflectionMethod($routeInfo->route->getControllerClass(), $routeInfo->route->getActionMethod());
+        foreach ($method->getParameters() as $argument) {
+            $type = $argument->getType();
+            if (! $type instanceof ReflectionNamedType || ! is_subclass_of($type->getName(), ListRequest::class)) {
+                continue;
+            }
+            $class = $type->getName();
+            $request = new $class;
+            $rules = $request->rules();
+            $operation->parameters = array_values(array_filter($operation->parameters, fn ($parameter): bool => ! ($parameter instanceof Parameter && $parameter->in === 'query' && array_key_exists($parameter->name, $rules))));
+            foreach ($rules as $field => $validation) {
+                $schema = in_array('integer', $validation, true) ? new IntegerType : (in_array('boolean', $validation, true) ? new BooleanType : new StringType);
+                foreach ($validation as $rule) {
+                    if (! is_string($rule)) {
+                        continue;
+                    }
+                    if (str_starts_with($rule, 'in:')) {
+                        $schema->enum(explode(',', substr($rule, 3)));
+                    }
+                    if ($schema instanceof IntegerType || $schema instanceof StringType) {
+                        if (str_starts_with($rule, 'min:')) {
+                            $schema->setMin((int) substr($rule, 4));
+                        }
+                        if (str_starts_with($rule, 'max:')) {
+                            $schema->setMax((int) substr($rule, 4));
+                        }
+                    }
+                    if ($rule === 'date_format:Y-m-d') {
+                        $schema->format('date');
+                    }
+                    if ($rule === 'nullable') {
+                        $schema->nullable(true);
+                    }
+                }
+                $description = 'Optional list filter. Different filters combine using AND.';
+                if (in_array($field, $request::MULTI, true)) {
+                    $schema = (new AnyOf)->setItems([$schema, (new ArrayType)->setItems(clone $schema)->setMin(1)->setMax(20)->setUniqueItems(true)]);
+                    $description .= ' One value or a list of up to 20 distinct values, using OR; use '.$field.'[]=value for lists.';
+                }
+                if ($field === 'sort') {
+                    $description = 'Allowed fields: '.implode(', ', $request::SORTS).'. Up to three comma-separated fields; - means descending. Default: '.$request::DEFAULT_SORT.'. A unique id tie-breaker is appended. Nullable values sort last.';
+                } elseif ($field === 'sort_type') {
+                    $description = 'asc or desc; requires exactly one unsigned sort field. Omit for signed or multi-field sort.';
+                } elseif ($field === 'per_page') {
+                    $schema->default($request instanceof ListSupportMessagesRequest ? 50 : 25);
+                    $description = 'Items per page; maximum 100. Response shape is unchanged.';
+                } elseif ($field === 'page') {
+                    $schema->default(1);
+                    $description = 'Page number, starting at 1.';
+                } elseif (str_ends_with($field, '_from') || str_ends_with($field, '_to')) {
+                    $description = 'Inclusive UTC calendar date (YYYY-MM-DD); the upper date includes its entire day.';
+                }
+                $operation->addParameters([Parameter::make($field, 'query')->required(in_array('required', $validation, true))->setSchema(Schema::fromType($schema))->description($description)]);
+            }
+            $operation->description($operation->description."\n\nUnsupported query parameters return 422. Only listed filters are accepted. Search and sorting preserve account/visibility scope. Monetary ranges and amount/balance sorts require currency on lists spanning currencies. Notification synchronization and support message streams keep their fixed ordering.");
+
+            return;
+        }
+    }
+
     private function resolveSchema(Schema|Reference|null $schema): ?Schema
     {
         $schema = $schema instanceof Reference ? $schema->resolve() : $schema;
@@ -291,9 +361,9 @@ final class ApiDocumentationExtension extends OperationExtension
                         $notification->getProperty('created_at')->format('date-time');
                     }
                 }
-                if ($data instanceof ObjectType && $data->hasProperty('items') && $data->hasProperty('meta')) {
+                if ($data instanceof ObjectType && $data->hasProperty('items') && $data->hasProperty('meta') && $data->getProperty('meta') instanceof ObjectType && $data->getProperty('meta')->hasProperty('current_page')) {
                     if (! collect($operation->parameters)->contains(fn ($p): bool => $p instanceof Parameter && $p->name === 'page')) {
-                        $operation->addParameters([Parameter::make('page', 'query')->setSchema(Schema::fromType((new IntegerType)->setMin(1)->default(1)))->description('Page number; fixed page size is 25.')]);
+                        $operation->addParameters([Parameter::make('page', 'query')->setSchema(Schema::fromType((new IntegerType)->setMin(1)->default(1)))->description('Page number, starting at 1.')]);
                     }
                 }
             }

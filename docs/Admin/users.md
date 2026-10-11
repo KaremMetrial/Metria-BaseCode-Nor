@@ -6,7 +6,7 @@
 
 ## تسلسل الاستخدام
 
-1. اقرأ قائمة المستخدمين عبر users.read؛ لا توجد فلاتر type/status في هذا endpoint حاليًا.
+1. اقرأ قائمة المستخدمين عبر users.read؛ يمكن التصفية حسب type/status والبحث والتاريخ، مع ترتيب وحجم صفحة اختياريين؛ راجع دليل الفلترة.
 2. اعتماد Vendor pending يحتاج vendors.approve؛ رفضه يحتاج vendors.reject؛ التغييرات الأخرى users.block.
 3. أرسل status من active/blocked/suspended/inactive. لا يمكن تغيير حالة نفسك أو أدمن آخر.
 4. إضافة role تحتاج super-admin والهدف Admin؛ الإضافة لا تزيل الأدوار الحالية.
@@ -35,9 +35,23 @@ Required permission: `users.read`.
 
 ### Path / Query
 
+[قواعد الفلترة والترتيب والأمثلة](../Shared/list-filtering.md)
+
 | الحقل | المكان | مطلوب | القيود |
 |---|---|---|---|
-| `page` | query | لا | `{"type": "integer", "default": 1, "minimum": 1}` |
+| `sort` | query | لا | `{"type":"string","maxLength":100}` |
+| `sort_type` | query | لا | `{"type":"string","enum":["asc","desc"]}` |
+| `page` | query | لا | `{"type":"integer","default":1,"minimum":1}` |
+| `per_page` | query | لا | `{"type":"integer","default":25,"minimum":1,"maximum":100}` |
+| `search` | query | لا | `{"type":"string","minLength":1,"maxLength":100}` |
+| `type` | query | لا | `{"anyOf":[{"type":"string","enum":["admin","client","vendor"]},{"type":"array","items":{"type":"string","enum":["admin","client","vendor"]},"minItems":1,"maxItems":20}]}` |
+| `status` | query | لا | `{"anyOf":[{"type":"string","enum":["pending","active","suspended","blocked","inactive"]},{"type":"array","items":{"type":"string","enum":["pending","active","suspended","blocked","inactive"]},"minItems":1,"maxItems":20}]}` |
+| `phone_country_id` | query | لا | `{"type":"integer","minimum":1}` |
+| `created_from` | query | لا | `{"type":"string","format":"date"}` |
+| `created_to` | query | لا | `{"type":"string","format":"date"}` |
+| `phone_verified` | query | لا | `{"type":"boolean"}` |
+
+Allowed fields: id, name, created_at, last_login_at. Up to three comma-separated fields; - means descending. Default: -id. A unique id tie-breaker is appended. Nullable values sort last.
 
 ### مثال الطلب
 

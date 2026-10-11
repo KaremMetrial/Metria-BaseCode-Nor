@@ -41,10 +41,22 @@ Required permission: `pages.read`.
 
 ### Path / Query
 
+[قواعد الفلترة والترتيب والأمثلة](../Shared/list-filtering.md)
+
 | الحقل | المكان | مطلوب | القيود |
 |---|---|---|---|
-| `status` | query | لا | `{"type": "string", "enum": ["draft", "published", "archived"]}` |
-| `page` | query | لا | `{"type": "integer", "default": 1, "minimum": 1}` |
+| `sort` | query | لا | `{"type":"string","maxLength":100}` |
+| `sort_type` | query | لا | `{"type":"string","enum":["asc","desc"]}` |
+| `page` | query | لا | `{"type":"integer","default":1,"minimum":1}` |
+| `per_page` | query | لا | `{"type":"integer","default":25,"minimum":1,"maximum":100}` |
+| `search` | query | لا | `{"type":"string","minLength":1,"maxLength":100}` |
+| `status` | query | لا | `{"anyOf":[{"type":"string","enum":["draft","published","archived"]},{"type":"array","items":{"type":"string","enum":["draft","published","archived"]},"minItems":1,"maxItems":20}]}` |
+| `show_in_footer` | query | لا | `{"type":"boolean"}` |
+| `show_in_settings` | query | لا | `{"type":"boolean"}` |
+| `created_from` | query | لا | `{"type":"string","format":"date"}` |
+| `created_to` | query | لا | `{"type":"string","format":"date"}` |
+
+Allowed fields: id, sort_order, created_at, updated_at, title, slug. Up to three comma-separated fields; - means descending. Default: sort_order,id. A unique id tie-breaker is appended. Nullable values sort last.
 
 ### مثال الطلب
 
@@ -457,9 +469,21 @@ Required permission: `pages.read`.
 
 ### Path / Query
 
+[قواعد الفلترة والترتيب والأمثلة](../Shared/list-filtering.md)
+
 | الحقل | المكان | مطلوب | القيود |
 |---|---|---|---|
-| `page` | path | نعم | `{"type": "integer"}` |
+| `page` | path | نعم | `{"type":"integer"}` |
+| `sort` | query | لا | `{"type":"string","maxLength":100}` |
+| `sort_type` | query | لا | `{"type":"string","enum":["asc","desc"]}` |
+| `page` | query | لا | `{"type":"integer","default":1,"minimum":1}` |
+| `per_page` | query | لا | `{"type":"integer","default":25,"minimum":1,"maximum":100}` |
+| `version` | query | لا | `{"type":"integer","minimum":1}` |
+| `published_by` | query | لا | `{"type":"integer","minimum":1}` |
+| `published_from` | query | لا | `{"type":"string","format":"date"}` |
+| `published_to` | query | لا | `{"type":"string","format":"date"}` |
+
+Allowed fields: id, version, published_at. Up to three comma-separated fields; - means descending. Default: -version. A unique id tie-breaker is appended. Nullable values sort last.
 
 ### مثال الطلب
 

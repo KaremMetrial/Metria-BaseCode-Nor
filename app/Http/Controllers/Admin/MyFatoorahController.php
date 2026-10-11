@@ -9,6 +9,8 @@ use App\Enums\AuditAction;
 use App\Enums\ErrorCode;
 use App\Exceptions\DomainException;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Admin\ListMyFatoorahEntitiesRequest;
+use App\Http\Requests\Admin\ListMyFatoorahOperationsRequest;
 use App\Http\Requests\Admin\MyFatoorahRequest;
 use App\Http\Requests\Admin\MyFatoorahResolutionRequest;
 use App\Http\Resources\Admin\MyFatoorahEntityResource;
@@ -17,6 +19,7 @@ use App\Models\MyFatoorahEntity;
 use App\Models\MyFatoorahOperation;
 use App\Services\Payments\MyFatoorahCatalog;
 use App\Support\ApiResponse;
+use App\Support\ListQuery;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
 
@@ -51,9 +54,9 @@ final class MyFatoorahController extends Controller
      *
      * Returns the administrative operation history, including uncertain outcomes needing review. Request bodies and credentials are never returned.
      */
-    public function operations(): JsonResponse
+    public function operations(ListMyFatoorahOperationsRequest $request, ListQuery $filters): JsonResponse
     {
-        return ApiResponse::paginated(MyFatoorahOperationResource::class, MyFatoorahOperation::query()->orderByDesc('id')->paginate(25));
+        return ApiResponse::paginated(MyFatoorahOperationResource::class, $filters->apply(MyFatoorahOperation::query(), $request)->paginate($request->perPage()));
     }
 
     /**
@@ -71,9 +74,9 @@ final class MyFatoorahController extends Controller
      *
      * Lists invoices, subscriptions, suppliers, shipments, sessions, refunds, transfers, settlements and disputes. needs_refresh indicates a signed webhook or command requires a fresh status inquiry. This is an administrative view and may contain sensitive customer or bank data.
      */
-    public function entities(): JsonResponse
+    public function entities(ListMyFatoorahEntitiesRequest $request, ListQuery $filters): JsonResponse
     {
-        return ApiResponse::paginated(MyFatoorahEntityResource::class, MyFatoorahEntity::query()->orderByDesc('id')->paginate(25));
+        return ApiResponse::paginated(MyFatoorahEntityResource::class, $filters->apply(MyFatoorahEntity::query(), $request)->paginate($request->perPage()));
     }
 
     /**

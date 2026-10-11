@@ -6,11 +6,13 @@ use App\Actions\Admin\Access\AssignUserRole;
 use App\Actions\Admin\Access\ChangeUserStatus;
 use App\Enums\UserStatus;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Admin\ListUsersRequest;
 use App\Http\Requests\Admin\UserRoleRequest;
 use App\Http\Requests\Admin\UserStatusRequest;
 use App\Http\Resources\Shared\UserResource;
 use App\Models\User;
 use App\Support\ApiResponse;
+use App\Support\ListQuery;
 use Illuminate\Http\JsonResponse;
 
 final class UserManagementController extends Controller
@@ -20,9 +22,9 @@ final class UserManagementController extends Controller
      *
      * Returns users across actor types, newest first.
      */
-    public function index(): JsonResponse
+    public function index(ListUsersRequest $request, ListQuery $filters): JsonResponse
     {
-        return ApiResponse::paginated(UserResource::class, User::query()->orderByDesc('id')->paginate(25));
+        return ApiResponse::paginated(UserResource::class, $filters->apply(User::query(), $request)->paginate($request->perPage()));
     }
 
     /**

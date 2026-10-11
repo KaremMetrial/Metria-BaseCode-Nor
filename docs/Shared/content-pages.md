@@ -24,6 +24,21 @@
 
 Rate limit: 60 requests/minute per authenticated user, or per IP for public routes.
 
+### Path / Query
+
+[دليل الفلاتر والترتيب](../Shared/list-filtering.md)
+
+| الحقل | المكان | مطلوب | القيود |
+|---|---|---|---|
+| `sort` | query | لا | `{"type":"string","maxLength":100}` |
+| `sort_type` | query | لا | `{"type":"string","enum":["asc","desc"]}` |
+| `search` | query | لا | `{"type":"string","minLength":1,"maxLength":100}` |
+| `slug` | query | لا | `{"type":"string","maxLength":100}` |
+| `show_in_footer` | query | لا | `{"type":"boolean"}` |
+| `show_in_settings` | query | لا | `{"type":"boolean"}` |
+
+Allowed fields: id, sort_order, title, slug, published_at. Up to three comma-separated fields; - means descending. Default: sort_order,id. A unique id tie-breaker is appended. Nullable values sort last.
+
 ### مثال الطلب
 
 ```sh

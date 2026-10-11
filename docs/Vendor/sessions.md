@@ -55,6 +55,23 @@ Requires a bearer token for the Vendor actor.
 
 Rate limit: 60 requests/minute per authenticated user, or per IP for public routes.
 
+### Path / Query
+
+[دليل الفلاتر والترتيب](../Shared/list-filtering.md)
+
+| الحقل | المكان | مطلوب | القيود |
+|---|---|---|---|
+| `sort` | query | لا | `{"type":"string","maxLength":100}` |
+| `sort_type` | query | لا | `{"type":"string","enum":["asc","desc"]}` |
+| `search` | query | لا | `{"type":"string","minLength":1,"maxLength":100}` |
+| `is_current` | query | لا | `{"type":"boolean"}` |
+| `created_from` | query | لا | `{"type":"string","format":"date"}` |
+| `created_to` | query | لا | `{"type":"string","format":"date"}` |
+| `last_used_from` | query | لا | `{"type":"string","format":"date"}` |
+| `last_used_to` | query | لا | `{"type":"string","format":"date"}` |
+
+Allowed fields: id, created_at, last_used_at. Up to three comma-separated fields; - means descending. Default: -id. A unique id tie-breaker is appended. Nullable values sort last.
+
 ### مثال الطلب
 
 ```sh
@@ -153,3 +170,7 @@ curl --fail-with-body -X POST "$API_BASE/vendor/auth/logout-all" \
 
 - [LogoutController.php](../../app/Http/Controllers/Shared/LogoutController.php)
 - [SessionController.php](../../app/Http/Controllers/Shared/SessionController.php)
+
+## البحث والترتيب
+
+`GET /api/v1/vendor/auth/sessions` يقبل `search` لاسم الجهاز و`is_current=1|0`، و`created_from/to` و`last_used_from/to`. رتب بـ `sort=id|created_at|last_used_at` مع `sort_type=asc|desc` أو الصيغة المتعددة `sort=-last_used_at,id`. تبقى `data.items` كاملة للجلسات الصالحة دون pagination. [قواعد الفلترة](../Shared/list-filtering.md).

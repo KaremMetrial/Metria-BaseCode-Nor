@@ -5,13 +5,23 @@ namespace App\Http\Controllers\Client;
 use App\Actions\Shared\Support\ManageConversation;
 use App\Http\Controllers\Shared\SupportConversationController as SharedSupportConversationController;
 use App\Http\Requests\Client\SupportConversationRequest;
+use App\Http\Requests\Shared\ListConversationsRequest;
 use App\Http\Resources\Shared\SupportConversationResource;
 use App\Support\ApiResponse;
+use App\Support\ListQuery;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 final class SupportConversationController extends SharedSupportConversationController
 {
+    /** List support conversations.
+     * Returns only conversations visible to the caller, with optional status, subject search and date filters.
+     */
+    public function index(ListConversationsRequest $request, ManageConversation $action, ListQuery $filters): JsonResponse
+    {
+        return ApiResponse::paginated(SupportConversationResource::class, $filters->apply($action->query($request->user()), $request)->paginate($request->perPage()));
+    }
+
     /** Start a support conversation.
      * Supply subject, first message body, request_id and client_message_id UUIDs. Identical retries return the existing conversation; at most five unresolved conversations are allowed.
      */

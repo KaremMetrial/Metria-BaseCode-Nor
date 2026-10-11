@@ -91,9 +91,21 @@ Required permission: `wallets.read`.
 
 ### Path / Query
 
+[قواعد الفلترة والترتيب والأمثلة](../Shared/list-filtering.md)
+
 | الحقل | المكان | مطلوب | القيود |
 |---|---|---|---|
-| `page` | query | لا | `{"type": "integer", "default": 1, "minimum": 1}` |
+| `sort` | query | لا | `{"type":"string","maxLength":100}` |
+| `sort_type` | query | لا | `{"type":"string","enum":["asc","desc"]}` |
+| `page` | query | لا | `{"type":"integer","default":1,"minimum":1}` |
+| `per_page` | query | لا | `{"type":"integer","default":25,"minimum":1,"maximum":100}` |
+| `currency` | query | لا | `{"type":"string"}` |
+| `user_id` | query | لا | `{"type":"integer","minimum":1}` |
+| `is_locked` | query | لا | `{"type":"boolean"}` |
+| `balance_min` | query | لا | `{"type":"integer","minimum":0,"maximum":9000000000000000}` |
+| `balance_max` | query | لا | `{"type":"integer","minimum":0,"maximum":9000000000000000}` |
+
+Allowed fields: id, currency, balance. Up to three comma-separated fields; - means descending. Default: -id. A unique id tie-breaker is appended. Nullable values sort last.
 
 ### مثال الطلب
 

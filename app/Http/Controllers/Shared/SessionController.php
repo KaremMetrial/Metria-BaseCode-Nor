@@ -6,8 +6,10 @@ use App\Contracts\Audit\AuditLoggerInterface;
 use App\DTOs\Audit\AuditEntry;
 use App\Enums\AuditAction;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Shared\ListSessionsRequest;
 use App\Services\Auth\AccountSessions;
 use App\Support\ApiResponse;
+use App\Support\ListQuery;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -20,10 +22,14 @@ final class SessionController extends Controller
      *
      * Returns device names and activity timestamps, never bearer tokens. Expired sessions are excluded.
      */
-    public function index(Request $request, AccountSessions $sessions): JsonResponse
+    public function index(ListSessionsRequest $request, AccountSessions $sessions, ListQuery $filters): JsonResponse
     {
         $current = $sessions->current($request->user());
-        $items = $request->user()->tokens()->orderByDesc('id')->get()
+        $query = $request->user()->tokens()->getQuery();
+        if ($request->has('is_current')) {
+            $query->where('id', $request->boolean('is_current') ? '=' : '!=', $current->id);
+        }
+        $items = $filters->apply($query, $request)->get()
             ->filter(fn (PersonalAccessToken $token): bool => $sessions->isValid($token))
             ->map(fn (PersonalAccessToken $token): array => ['id' => $token->id, 'device_name' => $token->name, 'is_current' => $token->id === $current->id, 'created_at' => $token->created_at->toIso8601String(), 'last_used_at' => $token->last_used_at?->toIso8601String(), 'expires_at' => $token->expires_at?->toIso8601String()])->values();
 

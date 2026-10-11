@@ -12,7 +12,7 @@
 4. للمزامنة أرسل since_version، ثم ثبّت until_version على snapshot_version الراجع، وواصل cursor حتى يصبح next_cursor=null.
 5. ارفع مؤشر المزامنة المحلي فقط بعد استهلاك جميع الصفحات، وطبّق archived_at كعلامة حذف من الصندوق.
 
-ادمج بالـid وrevision. في وضع المزامنة لا تُطبّق فلاتر الصندوق status/category. الإشعارات القديمة قد تحتفظ بلغتها وقت الإنشاء. لا يوجد endpoint لإرسال إشعار عشوائي من التطبيق.
+ادمج بالـid وrevision. في وضع المزامنة يُرفض إرسال فلاتر الصندوق status/category بخطأ 422. الإشعارات القديمة قد تحتفظ بلغتها وقت الإنشاء. لا يوجد endpoint لإرسال إشعار عشوائي من التطبيق.
 
 ## المسارات
 
@@ -274,3 +274,7 @@ curl --fail-with-body --get "$CLIENT_BASE/notifications" \
 ## مصدر العقد
 
 - [NotificationController.php](../../app/Http/Controllers/Shared/NotificationController.php)
+
+## فلاتر العرض والمزامنة
+
+عرض الصندوق يدعم `created_from`, `created_to`, `sort=id|created_at` و`sort_type=asc|desc`، أو `sort=-created_at,id`، مع status/category المعتادة. `since_version` يفعّل وضع المزامنة: الجمع معه بفلاتر العرض أو sort/sort_type/page يرجع 422، وكذلك cursor/until_version دون since_version. [العقد الكامل للفلاتر](../Shared/list-filtering.md).

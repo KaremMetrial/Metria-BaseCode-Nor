@@ -4,6 +4,7 @@
 
 | الدليل | الملف |
 |---|---|
+| [الفلاتر والبحث والترتيب](list-filtering.md) | `list-filtering.md` |
 | [روابط المشاركة وتكامل الموبايل](deep-links.md) | `deep-links.md` |
 | [إعدادات بدء تشغيل التطبيق](app-config.md) | `app-config.md` |
 | [التتبع وسجل التدقيق](audit.md) | `audit.md` |

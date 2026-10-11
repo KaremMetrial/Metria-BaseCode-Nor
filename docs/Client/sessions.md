@@ -135,3 +135,7 @@ curl --fail-with-body -X POST "$CLIENT_BASE/auth/logout-all" \
 
 - [LogoutController.php](../../app/Http/Controllers/Shared/LogoutController.php)
 - [SessionController.php](../../app/Http/Controllers/Shared/SessionController.php)
+
+## البحث والترتيب
+
+`GET /api/v1/client/auth/sessions` يقبل `search` لاسم الجهاز و`is_current=1|0`، و`created_from/to` و`last_used_from/to`. رتب بـ `sort=id|created_at|last_used_at` مع `sort_type=asc|desc` أو الصيغة المتعددة `sort=-last_used_at,id`. تبقى `data.items` كاملة للجلسات الصالحة دون pagination. [قواعد الفلترة](../Shared/list-filtering.md).

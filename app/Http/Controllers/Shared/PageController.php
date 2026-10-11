@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Shared;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Shared\ListPagesRequest;
 use App\Http\Resources\Shared\PageResource;
 use App\Models\ContactSetting;
 use App\Models\Country;
@@ -17,9 +18,37 @@ final class PageController extends Controller
     /** List published pages.
      * Public bilingual content. Only published snapshots are exposed; draft navigation changes remain private.
      */
-    public function index(): JsonResponse
+    public function index(ListPagesRequest $request): JsonResponse
     {
-        $pages = Page::query()->where('status', 'published')->with('publishedRevision')->get()->sortBy(fn (Page $page): string => sprintf('%010d:%010d', $page->publishedRevision->navigation['sort_order'], $page->id))->values();
+        $data = $request->validated();
+        $value = static function (Page $page, string $field): mixed {
+            return match ($field) {
+                'title' => $page->publishedRevision->translations[app()->getLocale()]['title'],
+                'sort_order', 'show_in_footer', 'show_in_settings' => $page->publishedRevision->navigation[$field],
+                'published_at' => $page->publishedRevision->published_at->getTimestamp(),
+                default => $page->getAttribute($field),
+            };
+        };
+        $pages = Page::query()->where('status', 'published')->with('publishedRevision')->get()
+            ->filter(function (Page $page) use ($data, $value): bool {
+                foreach (['slug', 'show_in_footer', 'show_in_settings'] as $field) {
+                    if (array_key_exists($field, $data) && $value($page, $field) != $data[$field]) {
+                        return false;
+                    }
+                }
+
+                return ! isset($data['search']) || mb_stripos($value($page, 'title'), $data['search']) !== false || mb_stripos($page->slug, $data['search']) !== false;
+            })
+            ->sort(function (Page $left, Page $right) use ($request, $value): int {
+                foreach ($request->sortTerms() as [$field, $direction]) {
+                    $comparison = $value($left, $field) <=> $value($right, $field);
+                    if ($comparison !== 0) {
+                        return $direction === 'desc' ? -$comparison : $comparison;
+                    }
+                }
+
+                return 0;
+            })->values();
 
         return ApiResponse::success(PageResource::collection($pages));
     }

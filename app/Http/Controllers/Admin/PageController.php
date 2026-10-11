@@ -5,28 +5,25 @@ namespace App\Http\Controllers\Admin;
 use App\Actions\Admin\Content\PublishPage;
 use App\Actions\Admin\Content\SavePage;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Admin\ListPageRevisionsRequest;
+use App\Http\Requests\Admin\ListPagesRequest;
 use App\Http\Requests\Admin\PageRequest;
 use App\Http\Resources\Admin\PageResource;
 use App\Models\Page;
+use App\Models\PageRevision;
 use App\Support\ApiResponse;
+use App\Support\ListQuery;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Validation\Rule;
 
 final class PageController extends Controller
 {
     /** List content pages.
      * Includes drafts and archived pages. Filter by status; pages contain draft translations and publication metadata.
      */
-    public function index(Request $request): JsonResponse
+    public function index(ListPagesRequest $request, ListQuery $filters): JsonResponse
     {
-        $data = $request->validate(['status' => ['sometimes', Rule::in(['draft', 'published', 'archived'])]]);
-        $query = Page::query()->with(['translations', 'publishedRevision'])->orderBy('sort_order')->orderBy('id');
-        if (isset($data['status'])) {
-            $query->where('status', $data['status']);
-        }
-
-        return ApiResponse::paginated(PageResource::class, $query->paginate(25));
+        return ApiResponse::paginated(PageResource::class, $filters->apply(Page::query()->with(['translations', 'publishedRevision']), $request)->paginate($request->perPage()));
     }
 
     /** Create a draft page.
@@ -76,10 +73,10 @@ final class PageController extends Controller
     /** List immutable published revisions.
      * Returns complete bilingual snapshots, latest first; draft updates never modify these records.
      */
-    public function revisions(Page $page): JsonResponse
+    public function revisions(ListPageRevisionsRequest $request, Page $page, ListQuery $filters): JsonResponse
     {
-        $rows = $page->revisions()->orderByDesc('version')->paginate(25);
+        $rows = $filters->apply($page->revisions()->getQuery(), $request)->paginate($request->perPage());
 
-        return ApiResponse::success(['items' => $rows->getCollection()->map(fn ($row): array => ['id' => $row->id, 'version' => $row->version, 'translations' => $row->translations, 'navigation' => $row->navigation, 'media_ids' => $row->media_ids ?? [], 'terms_version' => $row->terms_version, 'published_by' => $row->published_by, 'published_at' => $row->published_at->toIso8601String()]), 'meta' => ['current_page' => $rows->currentPage(), 'last_page' => $rows->lastPage(), 'per_page' => $rows->perPage(), 'total' => $rows->total()]]);
+        return ApiResponse::success(['items' => $rows->getCollection()->map(fn (PageRevision $row): array => ['id' => $row->id, 'version' => $row->version, 'translations' => $row->translations, 'navigation' => $row->navigation, 'media_ids' => $row->media_ids ?? [], 'terms_version' => $row->terms_version, 'published_by' => $row->published_by, 'published_at' => $row->published_at->toIso8601String()]), 'meta' => ['current_page' => $rows->currentPage(), 'last_page' => $rows->lastPage(), 'per_page' => $rows->perPage(), 'total' => $rows->total()]]);
     }
 }

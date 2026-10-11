@@ -6,9 +6,11 @@ use App\Contracts\Audit\AuditLoggerInterface;
 use App\DTOs\Audit\AuditEntry;
 use App\Enums\AuditAction;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Admin\ListContactMessagesRequest;
 use App\Http\Resources\Admin\ContactMessageResource;
 use App\Models\ContactMessage;
 use App\Support\ApiResponse;
+use App\Support\ListQuery;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -19,18 +21,9 @@ final class ContactMessageController extends Controller
     /** List contact submissions.
      * Filter by new, reviewed or closed; search by reference, subject or phone. Newest first, 25 per page.
      */
-    public function index(Request $request): JsonResponse
+    public function index(ListContactMessagesRequest $request, ListQuery $filters): JsonResponse
     {
-        $data = $request->validate(['status' => ['sometimes', Rule::in(['new', 'reviewed', 'closed'])], 'search' => ['sometimes', 'string', 'max:100']]);
-        $query = ContactMessage::query()->orderByDesc('id');
-        if (isset($data['status'])) {
-            $query->where('status', $data['status']);
-        }
-        if (isset($data['search'])) {
-            $query->where(fn ($q) => $q->where('reference', $data['search'])->orWhere('subject', 'like', '%'.$data['search'].'%')->orWhere('phone', $data['search']));
-        }
-
-        return ApiResponse::paginated(ContactMessageResource::class, $query->paginate(25));
+        return ApiResponse::paginated(ContactMessageResource::class, $filters->apply(ContactMessage::query(), $request)->paginate($request->perPage()));
     }
 
     /** Read a contact submission.
