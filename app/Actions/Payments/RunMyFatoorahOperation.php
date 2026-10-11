@@ -39,7 +39,7 @@ final class RunMyFatoorahOperation
 
             return ['operation_id' => null, 'status' => 'succeeded', 'result' => $result];
         }
-        $hash = hash('sha256', json_encode([$actor->id, $name, Arr::sortRecursive($input)], JSON_THROW_ON_ERROR));
+        $hash = hash('sha256', json_encode([$actor->id, $name, $this->canonicalize($input)], JSON_THROW_ON_ERROR));
         $record = DB::transaction(function () use ($actor, $customerId, $operation, $key, $hash): MyFatoorahOperation {
             MyFatoorahOperation::query()->insertOrIgnore([
                 'uuid' => (string) Str::uuid(), 'actor_id' => $actor->id, 'customer_id' => $customerId,
@@ -75,6 +75,26 @@ final class RunMyFatoorahOperation
         }
 
         return ['operation_id' => $record->uuid, 'status' => 'succeeded', 'result' => $result];
+    }
+
+    /**
+     * Sort object keys without changing the meaning of ordered lists.
+     *
+     * @param  array<string|int, mixed>  $input
+     * @return array<string|int, mixed>
+     */
+    private function canonicalize(array $input): array
+    {
+        if (! array_is_list($input)) {
+            ksort($input);
+        }
+        foreach ($input as $key => $value) {
+            if (is_array($value)) {
+                $input[$key] = $this->canonicalize($value);
+            }
+        }
+
+        return $input;
     }
 
     private function send(array $operation, array $payload, ?string $key): array

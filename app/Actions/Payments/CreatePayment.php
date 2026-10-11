@@ -37,7 +37,9 @@ final class CreatePayment
             }
             $wallet = $this->wallets->forUser($user, $currency);
             $payment = new Payment;
-            $payment->forceFill(['uuid' => (string) Str::uuid(), 'user_id' => $user->id, 'wallet_id' => $wallet->id, 'provider' => $provider, 'amount' => $amount, 'currency' => $currency, 'status' => PaymentStatus::PENDING, 'refunded_amount' => 0, 'idempotency_key' => $key, 'request_hash' => $hash])->save();
+            $payment->forceFill(['uuid' => (string) Str::uuid(), 'user_id' => $user->id, 'wallet_id' => $wallet->id, 'provider' => $provider, 'amount' => $amount, 'currency' => $currency, 'status' => PaymentStatus::PENDING, 'refunded_amount' => 0, 'idempotency_key' => $key, 'request_hash' => $hash,
+                'provider_request_context' => ['locale' => app()->getLocale(), 'redirect_url' => config('payments.providers.'.$provider.'.redirect_url')],
+            ])->save();
 
             return $payment;
         }, 5);

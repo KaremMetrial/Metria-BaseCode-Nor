@@ -5,6 +5,8 @@ namespace App\Jobs;
 use App\Models\UserNotification;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
+use Illuminate\Redis\Connections\PhpRedisConnection;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Redis;
 
 final class PublishNotification implements ShouldQueue
@@ -28,7 +30,29 @@ final class PublishNotification implements ShouldQueue
         if (! $row || $row->published_at) {
             return;
         }
-        Redis::connection(config('broadcasting.connections.redis.connection', 'default'))->publish('private-user.'.$row->user_id, json_encode(['event' => 'notification.created', 'data' => $row->payload()], JSON_THROW_ON_ERROR));
+        $redis = Redis::connection(config('broadcasting.connections.redis.connection', 'default'));
+        $marker = 'notification-published:'.$row->id;
+        $script = <<<'LUA'
+            if redis.call('exists', KEYS[1]) == 1 then
+                return 0
+            end
+            redis.call('set', KEYS[1], '1')
+            local result = redis.pcall('publish', KEYS[2], ARGV[1])
+            if type(result) == 'table' and result.err then
+                redis.call('del', KEYS[1])
+                return redis.error_reply(result.err)
+            end
+            return 1
+            LUA;
+        $arguments = [$marker, 'private-user.'.$row->user_id, json_encode(['event' => 'notification.created', 'data' => $row->payload()], JSON_THROW_ON_ERROR)];
+        if ($redis instanceof PhpRedisConnection) {
+            $redis->eval($script, 2, ...$arguments);
+        } else {
+            $redis->command('eval', [$script, 2, ...$arguments]);
+        }
         $row->forceFill(['published_at' => now()])->save();
+
+        /** Keep the marker until SQL commits, then retain it beyond the worker timeout for in-flight duplicates. */
+        DB::afterCommit(fn () => $redis->expire($marker, 86400));
     }
 }

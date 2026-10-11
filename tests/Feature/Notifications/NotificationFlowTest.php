@@ -31,7 +31,8 @@ class NotificationFlowTest extends TestCase
         $this->patchJson('/api/v1/client/notifications/'.$row->id.'/read')->assertOk();
         $this->assertNotNull($row->fresh()->read_at);
         Redis::shouldReceive('connection')->once()->andReturnSelf();
-        Redis::shouldReceive('publish')->once()->with('private-user.'.$user->id, \Mockery::on(fn ($s) => json_decode($s, true)['data']['body'] === 'تم تغيير رقم هاتفك.'))->andReturn(1);
+        Redis::shouldReceive('command')->once()->with('eval', \Mockery::on(fn ($arguments) => $arguments[1] === 2 && $arguments[2] === 'notification-published:'.$row->id && $arguments[3] === 'private-user.'.$user->id && json_decode($arguments[4], true)['data']['body'] === 'تم تغيير رقم هاتفك.'))->andReturn(1);
+        Redis::shouldReceive('expire')->once()->with('notification-published:'.$row->id, 86400)->andReturn(1);
         $job = new PublishNotification($row->id);
         $job->handle();
         $job->handle();
@@ -44,7 +45,7 @@ class NotificationFlowTest extends TestCase
         app(NotificationOutbox::class)->record($user, 'notifications.phone_changed', [], 'event:failure');
         $row = UserNotification::firstOrFail();
         Redis::shouldReceive('connection')->once()->andReturnSelf();
-        Redis::shouldReceive('publish')->once()->andThrow(new \RuntimeException('unavailable'));
+        Redis::shouldReceive('command')->once()->andThrow(new \RuntimeException('unavailable'));
         try {
             (new PublishNotification($row->id))->handle();
             $this->fail('Expected Redis failure');

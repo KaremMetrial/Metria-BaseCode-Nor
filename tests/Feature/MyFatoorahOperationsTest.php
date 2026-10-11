@@ -159,6 +159,25 @@ class MyFatoorahOperationsTest extends TestCase
         Http::assertSentCount(1);
     }
 
+    public function test_reordered_object_keys_replay_but_reordered_list_items_conflict(): void
+    {
+        $this->admin();
+        Http::preventStrayRequests();
+        Http::fake(['https://apitest.myfatoorah.com/v3/payments' => Http::response(['IsSuccess' => true, 'Data' => ['InvoiceId' => 'ordered-invoice', 'PaymentURL' => 'https://demo.myfatoorah.com/payment']])]);
+        $payload = ['Order' => ['Amount' => 10, 'Currency' => 'KWD'], 'DisplayPaymentMethods' => ['VISA', 'MASTER']];
+        $headers = ['Idempotency-Key' => 'ordered-request'];
+        $first = $this->postJson(self::BASE.'invoices/create', $payload, $headers)->assertOk();
+
+        $this->postJson(self::BASE.'invoices/create', ['DisplayPaymentMethods' => ['VISA', 'MASTER'], 'Order' => ['Currency' => 'KWD', 'Amount' => 10]], $headers)
+            ->assertOk()->assertJsonPath('data.operation_id', $first->json('data.operation_id'));
+        $payload['DisplayPaymentMethods'] = ['MASTER', 'VISA'];
+        $this->postJson(self::BASE.'invoices/create', $payload, $headers)
+            ->assertConflict()->assertJsonPath('code', 'IDEMPOTENCY_CONFLICT');
+
+        Http::assertSentCount(1);
+        $this->assertDatabaseCount('my_fatoorah_operations', 1);
+    }
+
     public function test_invalid_sensitive_and_conditional_fields_are_rejected_before_http(): void
     {
         $this->admin();

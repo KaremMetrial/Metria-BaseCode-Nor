@@ -13,7 +13,10 @@ use App\Models\Wallet;
 use App\Services\Operations\ReadinessChecks;
 use App\Services\Payments\MyFatoorahClient;
 use Database\Seeders\RbacSeeder;
+use GuzzleHttp\Promise\PromiseInterface;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\Client\ConnectionException;
+use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Testing\TestResponse;
 use Laravel\Sanctum\Sanctum;
@@ -129,6 +132,51 @@ class MyFatoorahPaymentTest extends TestCase
         $this->assertSame(PaymentStatus::PAID, $payment->fresh()->status);
         $this->assertSame(12345, Wallet::findOrFail($payment->wallet_id)->balance);
         Http::assertSentCount(1);
+    }
+
+    public function test_timeout_retry_preserves_original_language_redirect_and_provider_key(): void
+    {
+        Http::preventStrayRequests();
+        $requests = [];
+        Http::fake(['https://apitest.myfatoorah.com/v3/payments' => function (Request $request) use (&$requests): PromiseInterface {
+            $requests[] = $request;
+            if (count($requests) === 1) {
+                throw new ConnectionException('Provider response timed out.');
+            }
+
+            return Http::response(['IsSuccess' => true, 'Data' => ['InvoiceId' => 'retry-invoice', 'PaymentURL' => 'https://demo.myfatoorah.com/retry']]);
+        }]);
+        config(['payments.providers.myfatoorah.redirect_url' => 'https://example.test/original']);
+        Sanctum::actingAs(User::factory()->create());
+        $payload = ['amount' => 12345, 'currency' => 'KWD', 'provider' => 'myfatoorah'];
+        $this->postJson('/api/v1/client/payments', $payload, ['Idempotency-Key' => 'stable-retry', 'X-Locale' => 'ar'])->assertServiceUnavailable();
+        config(['payments.providers.myfatoorah.redirect_url' => 'https://example.test/changed']);
+
+        $this->postJson('/api/v1/client/payments', $payload, ['Idempotency-Key' => 'stable-retry', 'X-Locale' => 'en'])->assertCreated();
+
+        Http::assertSentCount(1);
+        $this->assertCount(2, $requests);
+        $this->assertSame('AR', $requests[0]['Language']);
+        $this->assertSame('https://example.test/original', $requests[0]['IntegrationUrls']['Redirection']);
+        $this->assertSame($requests[0]->data(), $requests[1]->data());
+        $this->assertSame($requests[0]->header('Idempotency-Key'), $requests[1]->header('Idempotency-Key'));
+        $payment = Payment::query()->sole();
+        $this->assertArrayNotHasKey('provider_request_context', $payment->toArray());
+        $this->assertStringNotContainsString('example.test/original', $payment->getRawOriginal('provider_request_context'));
+    }
+
+    public function test_legacy_unresolved_payment_requires_reconciliation_without_resubmission(): void
+    {
+        $payment = $this->payment();
+        $payment->forceFill(['provider_reference' => null, 'payment_url' => null, 'provider_request_context' => null])->save();
+        Sanctum::actingAs(User::findOrFail($payment->user_id));
+        Http::fake(['https://apitest.myfatoorah.com/v3/payments' => Http::response(['IsSuccess' => true, 'Data' => ['InvoiceId' => 'unexpected']])]);
+
+        $this->postJson('/api/v1/client/payments', ['amount' => 12345, 'currency' => 'KWD', 'provider' => 'myfatoorah'], ['Idempotency-Key' => 'checkout-one'])
+            ->assertConflict()->assertJsonPath('code', 'RECONCILIATION_REQUIRED');
+
+        Http::assertNothingSent();
+        $this->assertDatabaseCount('payments', 1);
     }
 
     public function test_partial_refund_reserves_then_settles_from_authoritative_status(): void

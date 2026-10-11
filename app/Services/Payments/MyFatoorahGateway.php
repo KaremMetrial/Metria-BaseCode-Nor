@@ -24,14 +24,18 @@ final class MyFatoorahGateway implements PaymentGatewayInterface, ReconcilesPaym
         if ($payment->currency !== ($this->settings['currency'] ?? null)) {
             throw new DomainException(ErrorCode::CURRENCY_MISMATCH);
         }
+        $context = $payment->provider_request_context;
+        if ($context === null) {
+            throw new DomainException(ErrorCode::RECONCILIATION_REQUIRED);
+        }
         $payload = [
             'Order' => ['Amount' => (float) Money::decimal($payment->amount, $payment->currency), 'Currency' => $payment->currency, 'ExternalIdentifier' => $payment->uuid],
             'NotificationOption' => 'LINK',
             'OperationType' => 'PAY',
-            'Language' => app()->getLocale() === 'ar' ? 'AR' : 'EN',
+            'Language' => $context['locale'] === 'ar' ? 'AR' : 'EN',
         ];
-        if (! empty($this->settings['redirect_url'])) {
-            $payload['IntegrationUrls']['Redirection'] = $this->settings['redirect_url'];
+        if (! empty($context['redirect_url'])) {
+            $payload['IntegrationUrls']['Redirection'] = $context['redirect_url'];
         }
         $data = $this->client->request('POST', '/v3/payments', $payload, key: 'payment:'.$payment->uuid);
         $reference = $this->reference($data['InvoiceId'] ?? null);
