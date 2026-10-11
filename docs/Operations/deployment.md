@@ -97,3 +97,8 @@ Set `TRUSTED_PROXIES` in Laravel's server environment to the comma-separated IP 
 Deployment validates the archive checksum, runtime configuration, and database/Redis connectivity before entering maintenance. It then takes a compressed MySQL snapshot, runs forward migrations and `DatabaseSeeder` for roles, permissions and location reference data, verifies deployment readiness, switches `current`, restarts Passenger, and checks both HTTPS health endpoints. Production seeding does not create a default administrator. Expect a maintenance window. Failed backups, migrations or seeding leave the old release selected and maintenance enabled. A failed health check after activation re-enables maintenance and preserves `previous` for recovery. Inspect the failure before rerunning; failed releases are retained deliberately.
 
 Use **Actions → cPanel rollback** with an existing release ID (`commitSHA-runID-attempt`) to reactivate compatible old code. It preserves shared secrets/storage and never reverses migrations. Database changes must follow an expand/contract rollout for code rollback to work. Database restoration is a separate deliberate recovery operation; rehearse it, retain off-host backups, and rotate old release archives/backups according to your retention policy. No cPanel account or GitHub environment secrets have been configured by this repository change.
+
+
+## دومين روابط التطبيق
+
+راجع [إعداد الروابط وملفات association](../Shared/deep-links.md). دومين الروابط يستخدم Laravel public وHTTPS، ومعرفات Android/iOS الحقيقية. ملفات `.well-known` لا تمر عبر Socket.IO ولا redirects. ميزة الإحالات تضيف migration للجداول ونافذة ربط الحساب الجديد؛ الحسابات القديمة لا تُمنح نافذة بأثر رجعي. لا توجد مكافآت نقاط في هذه المرحلة.

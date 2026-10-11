@@ -2,10 +2,17 @@
 
 [الفهرس الرئيسي](README.md)
 
-يغطي **203 عملية API** مسجلة حاليًا. GET يتضمن HEAD على مستوى Laravel، ولا يُعد HEAD ميزة منفصلة. المسارات المحمية تتطلب نوع الحساب المطابق؛ راجع الملف المرتبط للشروط الدقيقة.
+يغطي **210 عملية API** مسجلة حاليًا. GET يتضمن HEAD على مستوى Laravel، ولا يُعد HEAD ميزة منفصلة. المسارات المحمية تتطلب نوع الحساب المطابق؛ راجع الملف المرتبط للشروط الدقيقة.
 
 | Method | Endpoint | الدليل |
 |---|---|---|
+| `GET` | `/api/v1/links/{code}` | [Shared/deep-links.md](Shared/deep-links.md) |
+| `POST` | `/api/v1/client/share-links` | [Client/referrals.md](Client/referrals.md) |
+| `DELETE` | `/api/v1/client/share-links/{code}` | [Client/referrals.md](Client/referrals.md) |
+| `GET` | `/api/v1/client/referrals` | [Client/referrals.md](Client/referrals.md) |
+| `POST` | `/api/v1/client/referrals/link` | [Client/referrals.md](Client/referrals.md) |
+| `POST` | `/api/v1/client/referrals/claim` | [Client/referrals.md](Client/referrals.md) |
+| `GET` | `/api/v1/client/referrals/history` | [Client/referrals.md](Client/referrals.md) |
 | `GET` | `/api/v1/config` | [Shared/app-config.md](Shared/app-config.md) |
 | `POST` | `/api/v1/admin/auth/login` | [Admin/authentication.md](Admin/authentication.md) |
 | `POST` | `/api/v1/admin/auth/logout` | [Admin/sessions.md](Admin/sessions.md) |

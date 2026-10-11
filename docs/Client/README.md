@@ -6,6 +6,7 @@
 
 | الدليل | الملف |
 |---|---|
+| [الإحالات وروابط المشاركة](referrals.md) | `referrals.md` |
 | [Client — إغلاق الحساب واستعادة الوصول](account-closure.md) | `account-closure.md` |
 | [Client — الدخول والتسجيل](authentication.md) | `authentication.md` |
 | [رحلة العميل كاملة](full-flow.md) | `full-flow.md` |
