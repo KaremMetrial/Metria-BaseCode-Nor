@@ -13,6 +13,8 @@ final class AvatarRequest extends FormRequest
 
     public function rules(): array
     {
-        return ['avatar' => ['required', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048', 'dimensions:max_width=2048,max_height=2048']];
+        $limits = config('media.uploads.avatar');
+
+        return ['avatar' => ['required', 'image', 'mimes:'.implode(',', $limits['extensions']), 'max:'.$limits['max_size_kb'], 'dimensions:max_width='.$limits['max_width'].',max_height='.$limits['max_height']]];
     }
 }

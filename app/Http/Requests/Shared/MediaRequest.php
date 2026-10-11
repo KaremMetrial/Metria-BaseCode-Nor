@@ -22,11 +22,12 @@ final class MediaRequest extends FormRequest
 
     public function rules(): array
     {
-        $page = $this->input('purpose') === 'page';
-        $rules = ['required', 'file', 'mimes:'.($page ? 'jpg,jpeg,png,webp' : 'jpg,jpeg,png,webp,pdf'), 'extensions:'.($page ? 'jpg,jpeg,png,webp' : 'jpg,jpeg,png,webp,pdf'), 'max:'.($page ? 5120 : 10240)];
+        $limits = config('media.uploads.'.($this->input('purpose') === 'page' ? 'page' : 'support'));
+        $extensions = implode(',', $limits['extensions']);
+        $rules = ['required', 'file', 'mimes:'.$extensions, 'extensions:'.$extensions, 'max:'.$limits['max_size_kb']];
         if ($this->file('file')?->getMimeType() !== 'application/pdf') {
             $rules[] = 'image';
-            $rules[] = 'dimensions:max_width=4096,max_height=4096';
+            $rules[] = 'dimensions:max_width='.$limits['max_width'].',max_height='.$limits['max_height'];
         }
 
         return ['purpose' => ['required', 'string', 'in:page,support'], 'file' => $rules,

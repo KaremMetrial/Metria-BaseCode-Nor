@@ -4,7 +4,7 @@
 
 ## 1. فتح التطبيق
 
-اقرأ `GET /api/v1/client/auth/requirements` و`GET /api/v1/locations/countries`. اعرض الشروط باستخدام الرابط/الإصدار الراجعين؛ الصفحات العامة عبر `GET /api/v1/pages/{slug}`. إذا كان لديك توكن محفوظ، جرّب `GET /api/v1/client/profile`: النجاح يستعيد الحساب، و 401 ينتقل للدخول. لا يوجد طلب refresh.
+ابدأ بـ[`GET /api/v1/config`](../Shared/app-config.md) للغات وبيانات التواصل وحدود الملفات ومتطلبات التسجيل داخل `client_auth.requirements`، ثم `GET /api/v1/locations/countries` لاختيار الهاتف. endpoint `GET /api/v1/client/auth/requirements` يظل متاحًا لقراءة المتطلبات منفردة. اعرض الشروط باستخدام الرابط/الإصدار الراجعين؛ الصفحات العامة عبر `GET /api/v1/pages/{slug}`. إذا كان لديك توكن محفوظ، جرّب `GET /api/v1/client/profile`: النجاح يستعيد الحساب، و 401 ينتقل للدخول. لا يوجد طلب refresh.
 
 ## 2. التسجيل أو الدخول بالهاتف
 

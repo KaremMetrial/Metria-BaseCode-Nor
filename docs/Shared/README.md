@@ -4,6 +4,7 @@
 
 | الدليل | الملف |
 |---|---|
+| [إعدادات بدء تشغيل التطبيق](app-config.md) | `app-config.md` |
 | [التتبع وسجل التدقيق](audit.md) | `audit.md` |
 | [Shared — التصنيفات](categories.md) | `categories.md` |
 | [Shared — إرسال رسالة تواصل معنا](contact-us.md) | `contact-us.md` |

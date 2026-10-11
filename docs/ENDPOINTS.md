@@ -2,10 +2,11 @@
 
 [الفهرس الرئيسي](README.md)
 
-يغطي **202 عملية API** مسجلة حاليًا. GET يتضمن HEAD على مستوى Laravel، ولا يُعد HEAD ميزة منفصلة. المسارات المحمية تتطلب نوع الحساب المطابق؛ راجع الملف المرتبط للشروط الدقيقة.
+يغطي **203 عملية API** مسجلة حاليًا. GET يتضمن HEAD على مستوى Laravel، ولا يُعد HEAD ميزة منفصلة. المسارات المحمية تتطلب نوع الحساب المطابق؛ راجع الملف المرتبط للشروط الدقيقة.
 
 | Method | Endpoint | الدليل |
 |---|---|---|
+| `GET` | `/api/v1/config` | [Shared/app-config.md](Shared/app-config.md) |
 | `POST` | `/api/v1/admin/auth/login` | [Admin/authentication.md](Admin/authentication.md) |
 | `POST` | `/api/v1/admin/auth/logout` | [Admin/sessions.md](Admin/sessions.md) |
 | `POST` | `/api/v1/admin/auth/logout-all` | [Admin/sessions.md](Admin/sessions.md) |

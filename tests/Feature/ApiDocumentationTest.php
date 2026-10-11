@@ -47,6 +47,11 @@ class ApiDocumentationTest extends TestCase
                 $success = array_filter(array_keys($operation['responses']), fn ($code): bool => $code >= 200 && $code < 300);
                 $this->assertNotEmpty($success, $path);
                 foreach ($operation['responses'] as $code => $response) {
+                    if ((int) $code === 304) {
+                        $this->assertArrayNotHasKey('content', $response);
+
+                        continue;
+                    }
                     if ($code < 400 && ! isset($response['content']['application/json'])) {
                         $this->assertArrayHasKey('image/png', $response['content'], $path);
                         $this->assertSame('binary', $response['content']['image/png']['schema']['format']);
@@ -232,6 +237,24 @@ class ApiDocumentationTest extends TestCase
         } finally {
             unlink($path);
         }
+    }
+
+    public function test_app_config_documents_public_fields_and_conditional_responses(): void
+    {
+        $this->app['env'] = 'local';
+        $operation = $this->getJson('/docs/api.json')->assertOk()->json('paths./config.get');
+        $data = $operation['responses']['200']['content']['application/json']['schema']['properties']['data'];
+
+        $this->assertSame([], $operation['security']);
+        $this->assertSame(['localization', 'client_auth', 'contact', 'uploads'], array_keys($data['properties']));
+        $this->assertSame('boolean', $data['properties']['localization']['properties']['supported']['items']['properties']['rtl']['type']);
+        $this->assertSame(['integer', 'null'], $data['properties']['client_auth']['properties']['requirements']['properties']['terms_revision_id']['type']);
+        $this->assertSame(['string', 'null'], $data['properties']['contact']['properties']['phone']['type']);
+        $this->assertSame('integer', $data['properties']['uploads']['properties']['avatar']['properties']['max_size_bytes']['type']);
+        $this->assertSame('string', $data['properties']['uploads']['properties']['support']['properties']['extensions']['items']['type']);
+        $this->assertContains('If-None-Match', array_column($operation['parameters'], 'name'));
+        $this->assertArrayNotHasKey('content', $operation['responses']['304']);
+        $this->assertArrayHasKey('ETag', $operation['responses']['200']['headers']);
     }
 
     /** @param array<string, mixed> $document

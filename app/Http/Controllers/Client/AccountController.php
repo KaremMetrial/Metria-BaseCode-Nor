@@ -4,8 +4,7 @@ namespace App\Http\Controllers\Client;
 
 use App\Actions\Client\Auth\CloseAccount;
 use App\Http\Controllers\Controller;
-use App\Models\Page;
-use App\Services\Content\TermsService;
+use App\Services\Auth\ClientRequirements;
 use App\Support\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -17,14 +16,9 @@ final class AccountController extends Controller
      *
      * Clients use phone authentication only. Lost-phone recovery requires support identity verification; this endpoint never changes an account.
      */
-    public function requirements(): JsonResponse
+    public function requirements(ClientRequirements $requirements): JsonResponse
     {
-        $terms = app(TermsService::class)->current();
-        $supportUrl = Page::query()->where('slug', 'contact-us')->where('status', 'published')->exists()
-            ? route('pages.show', ['slug' => 'contact-us', 'locale' => app()->getLocale()])
-            : config('client.support_url');
-
-        return ApiResponse::success(['terms_version' => $terms['version'], 'terms_revision_id' => $terms['revision_id'], 'terms_url' => $terms['url'], 'recovery' => ['method' => 'support', 'support_url' => $supportUrl ?: null]]);
+        return ApiResponse::success($requirements->current());
     }
 
     /**

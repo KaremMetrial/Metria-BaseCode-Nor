@@ -3,6 +3,7 @@
 namespace App\Support;
 
 use App\Enums\ErrorCode;
+use App\Http\Controllers\Shared\AppConfigController;
 use App\Http\Controllers\Shared\MediaController;
 use Dedoc\Scramble\Extensions\OperationExtension;
 use Dedoc\Scramble\Support\Generator\Combined\AnyOf;
@@ -69,6 +70,19 @@ final class ApiDocumentationExtension extends OperationExtension
         ]);
         $this->documentRequest($operation);
         $this->documentResponses($operation, $authenticated);
+        if ($route->getControllerClass() === AppConfigController::class) {
+            $operation->addParameters([
+                Parameter::make('If-None-Match', 'header')->setSchema(Schema::fromType(new StringType))
+                    ->description('ETag from the previous response for this language. A match returns 304 without a body.'),
+            ]);
+            $operation->addResponse(Response::make(304)->setDescription('Settings unchanged. Reuse the previously stored response; no response body.'));
+            foreach ($operation->responses as $response) {
+                if ($response instanceof Response && in_array((int) $response->code, [200, 304], true)) {
+                    $response->addHeader('ETag', new Header(description: 'Validator for the localized response.', schema: Schema::fromType(new StringType)));
+                    $response->addHeader('Cache-Control', new Header(schema: Schema::fromType((new StringType)->enum(['no-cache, private']))));
+                }
+            }
+        }
         if ($route->getControllerClass() === MediaController::class && in_array($route->getActionMethod(), ['download', 'public', 'avatar'], true)) {
             $response = Response::make(200)->setDescription('File bytes, with nosniff and no-store headers. Private downloads require bearer authentication.');
             $response->setContent('image/png', Schema::fromType((new StringType)->format('binary')));
