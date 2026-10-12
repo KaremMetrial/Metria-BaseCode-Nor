@@ -11,6 +11,8 @@ use Illuminate\Database\Query\Builder as QueryBuilder;
 
 final class ListQuery
 {
+    public function __construct(private SearchMatcher $searchMatcher) {}
+
     /**
      * Apply only to an already authorized/visibility-scoped query.
      *
@@ -58,15 +60,7 @@ final class ListQuery
         }
         $search = $data['search'] ?? $data['keyword'] ?? null;
         if ($search !== null) {
-            $query->where(function (Builder $nested) use ($request, $search): void {
-                foreach ($request::SEARCH as $column => $mode) {
-                    $nested->orWhere($nested->qualifyColumn($column), $mode === 'exact' ? '=' : 'like', $mode === 'exact' ? $search : '%'.$search.'%');
-                }
-                if ($request::TRANSLATED !== null) {
-                    $expression = $this->translation($nested, $request::TRANSLATED);
-                    $nested->orWhereRaw('('.$expression->toSql().') like ?', [...$expression->getBindings(), '%'.$search.'%']);
-                }
-            });
+            $this->searchMatcher->apply($query, $request, $search);
         }
         $query->reorder();
         foreach ($request->sortTerms() as [$field, $direction]) {

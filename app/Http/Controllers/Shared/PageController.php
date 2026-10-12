@@ -9,6 +9,7 @@ use App\Models\ContactSetting;
 use App\Models\Country;
 use App\Models\Page;
 use App\Support\ApiResponse;
+use App\Support\SearchMatcher;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -18,7 +19,7 @@ final class PageController extends Controller
     /** List published pages.
      * Public bilingual content. Only published snapshots are exposed; draft navigation changes remain private.
      */
-    public function index(ListPagesRequest $request): JsonResponse
+    public function index(ListPagesRequest $request, SearchMatcher $matcher): JsonResponse
     {
         $data = $request->validated();
         $value = static function (Page $page, string $field): mixed {
@@ -37,18 +38,38 @@ final class PageController extends Controller
                     }
                 }
 
-                return ! isset($data['search']) || mb_stripos($value($page, 'title'), $data['search']) !== false || mb_stripos($page->slug, $data['search']) !== false;
-            })
-            ->sort(function (Page $left, Page $right) use ($request, $value): int {
-                foreach ($request->sortTerms() as [$field, $direction]) {
-                    $comparison = $value($left, $field) <=> $value($right, $field);
-                    if ($comparison !== 0) {
-                        return $direction === 'desc' ? -$comparison : $comparison;
+                return true;
+            });
+        if (isset($data['search'])) {
+            foreach (['literal', 'arabic', 'ending'] as $mode) {
+                $matched = $pages->filter(function (Page $page) use ($matcher, $data, $mode): bool {
+                    if ($mode === 'literal' && $matcher->matches($page->slug, $data['search'], $mode)) {
+                        return true;
                     }
-                }
+                    foreach ($page->publishedRevision->translations as $locale => $translation) {
+                        if ($matcher->matches($translation['title'], $data['search'], $mode, $locale)) {
+                            return true;
+                        }
+                    }
 
-                return 0;
-            })->values();
+                    return false;
+                });
+                if ($matched->isNotEmpty()) {
+                    break;
+                }
+            }
+            $pages = $matched;
+        }
+        $pages = $pages->sort(function (Page $left, Page $right) use ($request, $value): int {
+            foreach ($request->sortTerms() as [$field, $direction]) {
+                $comparison = $value($left, $field) <=> $value($right, $field);
+                if ($comparison !== 0) {
+                    return $direction === 'desc' ? -$comparison : $comparison;
+                }
+            }
+
+            return 0;
+        })->values();
 
         return ApiResponse::success(PageResource::collection($pages));
     }

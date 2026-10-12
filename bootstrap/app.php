@@ -5,6 +5,7 @@ use App\Http\Middleware\AssignRequestId;
 use App\Http\Middleware\EnsureAccountIsActive;
 use App\Http\Middleware\EnsureUserType;
 use App\Http\Middleware\ForceJsonResponse;
+use App\Http\Middleware\NormalizeInputDigits;
 use App\Http\Middleware\SetLocale;
 use App\Support\RequestId;
 use Illuminate\Foundation\Application;
@@ -34,7 +35,7 @@ return Application::configure(basePath: dirname(__DIR__))
          * to trace -- 404s, 500s before routing -- without an id and without the
          * response header.
          */
-        $middleware->prepend([AssignRequestId::class, SetLocale::class]);
+        $middleware->prepend([AssignRequestId::class, NormalizeInputDigits::class, SetLocale::class]);
 
         /*
          * JSON negotiation for API traffic only, so a client that forgets
